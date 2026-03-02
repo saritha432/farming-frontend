@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { getDataForLang } from './dataByLang';
 import { api } from './api';
 import './App.css';
 import NavBar from './components/NavBar';
@@ -12,6 +11,7 @@ import Products from './components/Products';
 import Sales from './components/Sales';
 import Learning from './components/Learning';
 import Community from './components/Community';
+import { ToastContainer } from './components/Toast';
 
 const TABS = {
   FEED: 'FEED',
@@ -26,9 +26,11 @@ const TABS = {
 
 function App() {
   const { t, i18n } = useTranslation();
-  const staticData = getDataForLang(i18n.language);
   const [activeTab, setActiveTab] = useState(TABS.FEED);
   const [cart, setCart] = useState([]);
+  const [showCartDropdown, setShowCartDropdown] = useState(false);
+  const [apiOnline, setApiOnline] = useState(true);
+  const [toasts, setToasts] = useState([]);
   const [apiData, setApiData] = useState({
     posts: null,
     guides: null,
@@ -39,11 +41,26 @@ function App() {
     salesItems: null,
     courses: null,
   });
-  const [apiError, setApiError] = useState(false);
+
+  const addToast = useCallback(({ id, message, type }) => {
+    setToasts((prev) => [...prev, { id: id || Date.now(), message, type: type || 'info' }]);
+  }, []);
+  const removeToast = useCallback((id) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
-    setApiError(false);
+    api.getHealth && api.getHealth().then((r) => {
+      if (!cancelled) setApiOnline(r && r.ok);
+    }).catch(() => {
+      if (!cancelled) setApiOnline(false);
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
     Promise.all([
       api.getPosts(api.getClientId()).then((r) => ({ posts: r })).catch(() => null),
       api.getGuides().then((r) => ({ guides: r })).catch(() => null),
@@ -59,22 +76,27 @@ function App() {
       results.forEach((r) => r && Object.assign(next, r));
       if (Object.keys(next).length > 0) {
         setApiData((prev) => ({ ...prev, ...next }));
-      } else {
-        setApiError(true);
       }
     });
     return () => { cancelled = true; };
   }, []);
 
   const data = {
-    posts: apiData.posts ?? staticData.posts,
-    guides: apiData.guides ?? staticData.guides,
-    equipment: apiData.equipment ?? staticData.equipment,
-    workers: apiData.workers ?? staticData.workers,
-    jobs: apiData.jobs ?? staticData.jobs,
-    products: apiData.products ?? staticData.products,
-    salesItems: apiData.salesItems ?? staticData.salesItems,
-    courses: apiData.courses ?? staticData.courses,
+    posts: Array.isArray(apiData.posts) ? apiData.posts : [],
+    guides: Array.isArray(apiData.guides) ? apiData.guides : [],
+    equipment: Array.isArray(apiData.equipment) ? apiData.equipment : [],
+    workers: Array.isArray(apiData.workers) ? apiData.workers : [],
+    jobs: Array.isArray(apiData.jobs) ? apiData.jobs : [],
+    products: Array.isArray(apiData.products) ? apiData.products : [],
+    salesItems: Array.isArray(apiData.salesItems) ? apiData.salesItems : [],
+    courses: Array.isArray(apiData.courses) ? apiData.courses : [],
+  };
+
+  const loading = {
+    feed: apiData.posts === null,
+    knowledge: apiData.guides === null,
+    equipment: apiData.equipment === null,
+    sales: apiData.salesItems === null,
   };
 
   const handleAddToCart = (item) => {
@@ -82,6 +104,7 @@ function App() {
       if (prev.find((p) => p.id === item.id)) return prev;
       return [...prev, item];
     });
+    addToast({ id: Date.now(), message: t('toast.addedToCart'), type: 'success' });
   };
 
   const handleCreateJob = async (event) => {
@@ -108,11 +131,13 @@ function App() {
     try {
       const created = await api.postSalesItem(item);
       setApiData((prev) => ({ ...prev, salesItems: [...(prev.salesItems || data.salesItems), created] }));
+      addToast({ id: Date.now(), message: t('toast.productListed'), type: 'success' });
     } catch {
       setApiData((prev) => ({
         ...prev,
         salesItems: [...(prev.salesItems || data.salesItems), { ...item, id: `user-sales-${Date.now()}` }],
       }));
+      addToast({ id: Date.now(), message: t('toast.productListed'), type: 'success' });
     }
   };
 
@@ -120,11 +145,13 @@ function App() {
     try {
       const created = await api.postEquipment(item);
       setApiData((prev) => ({ ...prev, equipment: [...(prev.equipment || data.equipment), created] }));
+      addToast({ id: Date.now(), message: t('toast.equipmentListed'), type: 'success' });
     } catch {
       setApiData((prev) => ({
         ...prev,
         equipment: [...(prev.equipment || data.equipment), { ...item, id: `user-equip-${Date.now()}` }],
       }));
+      addToast({ id: Date.now(), message: t('toast.equipmentListed'), type: 'success' });
     }
   };
 
@@ -132,14 +159,36 @@ function App() {
     api.getPosts(api.getClientId()).then((r) => setApiData((prev) => ({ ...prev, posts: r }))).catch(() => {});
   };
 
+  const handleDeletePost = useCallback((postId) => {
+    setApiData((prev) => ({
+      ...prev,
+      posts: Array.isArray(prev.posts) ? prev.posts.filter((p) => p.id !== postId) : prev.posts,
+    }));
+  }, []);
+
+  const clearCart = () => {
+    setCart([]);
+    setShowCartDropdown(false);
+  };
+
   return (
     <div className="app-root">
+      {!apiOnline && (
+        <div className="app-banner-offline" role="status">
+          {t('app.usingCachedData')}
+        </div>
+      )}
       <header className="app-header">
-        <div>
+        <div className="app-header-left">
           <h1 className="app-title">{t('app.title')}</h1>
           <p className="app-subtitle">{t('app.subtitle')}</p>
         </div>
         <div className="app-header-meta">
+          <div className="app-header-icons">
+            <button type="button" aria-label="Home" onClick={() => setActiveTab(TABS.FEED)}>🏠</button>
+            <button type="button" aria-label="Explore" onClick={() => setActiveTab(TABS.KNOWLEDGE)}>🔍</button>
+            <button type="button" aria-label="Cart">❤️</button>
+          </div>
           <select
             className="lang-select"
             value={i18n.language && i18n.language.split('-')[0]}
@@ -150,65 +199,112 @@ function App() {
             <option value="te">{t('language.te')}</option>
             <option value="hi">{t('language.hi')}</option>
           </select>
-          <span className="app-pill">{t('app.pillFarmerFirst')}</span>
-          <span className="app-pill">{t('app.pillSocial')}</span>
-          <span className="app-pill">{t('app.pillWebMvp')}</span>
-          {cart.length > 0 && (
-            <span className="app-cart-pill">
-              {t('app.cart')}: <strong>{cart.length}</strong>{' '}
-              {cart.length > 1 ? t('app.cartItems') : t('app.cartItem')}
-            </span>
-          )}
+          <div className="cart-pill-wrap">
+            {cart.length > 0 && (
+              <>
+                <button
+                  type="button"
+                  className="app-cart-pill app-cart-pill-btn"
+                  onClick={() => setShowCartDropdown((v) => !v)}
+                  aria-expanded={showCartDropdown}
+                  aria-haspopup="true"
+                >
+                  {t('app.cart')}: <strong>{cart.length}</strong>
+                </button>
+                {showCartDropdown && (
+                  <div className="cart-dropdown" role="dialog" aria-label={t('app.cart')}>
+                    <h4>{t('sales.yourCart')}</h4>
+                    <ul>
+                      {cart.map((item) => (
+                        <li key={item.id}>
+                          <strong>{item.name}</strong> — {item.price}
+                        </li>
+                      ))}
+                    </ul>
+                    <div className="cart-dropdown-actions">
+                      <button type="button" className="small-btn" onClick={clearCart}>
+                        {t('app.clearCart')}
+                      </button>
+                      <button type="button" className="primary-btn">
+                        {t('sales.proceedPayment')}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
         </div>
       </header>
 
       <NavBar activeTab={activeTab} onChangeTab={setActiveTab} tabs={TABS} />
 
       <main className="app-main">
-        {activeTab === TABS.FEED && <Media posts={data.posts} refreshPosts={refreshPosts} />}
+        <div className="ig-shell">
+          <div className="ig-feed-column">
+            {activeTab === TABS.FEED && (
+              <Media
+                posts={data.posts}
+                loading={loading.feed}
+                refreshPosts={refreshPosts}
+                onDeletePost={handleDeletePost}
+                showToast={addToast}
+                t={t}
+              />
+            )}
 
-        {activeTab === TABS.KNOWLEDGE && (
-          <Knowledge guides={data.guides} />
-        )}
+            {activeTab === TABS.KNOWLEDGE && (
+              <Knowledge guides={data.guides} loading={loading.knowledge} />
+            )}
 
-        {activeTab === TABS.EQUIPMENT && (
-          <Equipment
-            items={data.equipment}
-            onAddEquipment={handleAddEquipment}
-          />
-        )}
+            {activeTab === TABS.EQUIPMENT && (
+              <Equipment
+                items={data.equipment}
+                loading={loading.equipment}
+                onAddEquipment={handleAddEquipment}
+                showToast={addToast}
+                t={t}
+              />
+            )}
 
-        {activeTab === TABS.LABOR && (
-          <Labor
-            laborProfiles={data.workers}
-            jobs={data.jobs}
-            onCreateJob={handleCreateJob}
-          />
-        )}
+            {activeTab === TABS.LABOR && (
+              <Labor
+                laborProfiles={data.workers}
+                jobs={data.jobs}
+                onCreateJob={handleCreateJob}
+              />
+            )}
 
-        {activeTab === TABS.PRODUCTS && (
-          <Products products={data.products} />
-        )}
+            {activeTab === TABS.PRODUCTS && (
+              <Products products={data.products} />
+            )}
 
-        {activeTab === TABS.SALES && (
-          <Sales
-            items={data.salesItems}
-            cart={cart}
-            onAddToCart={handleAddToCart}
-            onAddSalesItem={handleAddSalesItem}
-          />
-        )}
+            {activeTab === TABS.SALES && (
+              <Sales
+                items={data.salesItems}
+                cart={cart}
+                loading={loading.sales}
+                onAddToCart={handleAddToCart}
+                onAddSalesItem={handleAddSalesItem}
+                showToast={addToast}
+                t={t}
+              />
+            )}
 
-        {activeTab === TABS.LEARNING && (
-          <Learning courses={data.courses} />
-        )}
+            {activeTab === TABS.LEARNING && (
+              <Learning courses={data.courses} />
+            )}
 
-        {activeTab === TABS.COMMUNITY && <Community />}
+            {activeTab === TABS.COMMUNITY && <Community />}
+          </div>
+        </div>
       </main>
 
       <footer className="app-footer">
         <p className="muted">{t('app.footer')}</p>
       </footer>
+
+      <ToastContainer toasts={toasts} removeToast={removeToast} />
     </div>
   );
 }

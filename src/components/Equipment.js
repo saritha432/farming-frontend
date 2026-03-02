@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-function Equipment({ items, onAddEquipment }) {
+function Equipment({ items, loading, onAddEquipment }) {
   const { t } = useTranslation();
   const [showAddForm, setShowAddForm] = useState(false);
 
@@ -25,6 +25,26 @@ function Equipment({ items, onAddEquipment }) {
     form.reset();
     setShowAddForm(false);
   };
+
+  if (loading) {
+    return (
+      <section className="section">
+        <header className="section-header">
+          <h2>{t('equipment.title')}</h2>
+          <p>{t('equipment.description')}</p>
+        </header>
+        <div className="grid">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="card skeleton skeleton-card">
+              <div className="skeleton skeleton-line" style={{ width: '75%' }} />
+              <div className="skeleton skeleton-line short" />
+              <div className="skeleton skeleton-line" style={{ width: '50%', marginTop: '0.5rem' }} />
+            </div>
+          ))}
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="section">
@@ -78,35 +98,48 @@ function Equipment({ items, onAddEquipment }) {
           </form>
         </div>
       )}
-      <div className="grid">
-        {items.map((item) => (
-          <article key={item.id} className="card">
-            <h3>{item.name}</h3>
-            <p className="muted">
-              {item.location} • {item.mode}
-            </p>
-            <p className="highlight-text">{item.price}</p>
-            <p className="muted">
-              {item.includesOperator
-                ? t('equipment.includesOperator')
-                : t('equipment.operatorNotIncluded')}
-            </p>
-            <div className="card-footer-row">
-              <button type="button" className="primary-btn">
-                {(item.modeKey || item.mode).toString().toLowerCase() === 'rent'
-                  ? t('equipment.requestRent')
-                  : t('equipment.requestSell')}
-              </button>
-              <button type="button" className="ghost-btn">
-                {t('equipment.viewTutorial')}
-              </button>
-            </div>
-          </article>
-        ))}
-      </div>
+      {!loading && items.length === 0 && (
+        <div className="empty-state card">
+          <div className="empty-state-icon" aria-hidden>🚜</div>
+          <h3>{t('equipment.title')}</h3>
+          <p>No equipment listed yet. List your first item for rent or sale.</p>
+          {onAddEquipment && (
+            <button type="button" className="primary-btn mt-lg" onClick={() => setShowAddForm(true)}>
+              {t('equipment.listEquipment')}
+            </button>
+          )}
+        </div>
+      )}
+      {items.length > 0 && (
+        <div className="grid">
+          {items.map((item) => (
+            <article key={item.id} className="card">
+              <h3>{item.name}</h3>
+              <p className="muted">
+                {item.location} • {item.mode}
+              </p>
+              <p className="highlight-text">{item.price}</p>
+              <p className="muted">
+                {item.includesOperator
+                  ? t('equipment.includesOperator')
+                  : t('equipment.operatorNotIncluded')}
+              </p>
+              <div className="card-footer-row">
+                <button type="button" className="primary-btn">
+                  {(item.modeKey || item.mode).toString().toLowerCase() === 'rent'
+                    ? t('equipment.requestRent')
+                    : t('equipment.requestSell')}
+                </button>
+                <button type="button" className="ghost-btn">
+                  {t('equipment.viewTutorial')}
+                </button>
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
     </section>
   );
 }
 
 export default Equipment;
-

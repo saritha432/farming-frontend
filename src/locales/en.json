@@ -2,15 +2,25 @@
   "common": {
     "cancel": "Cancel"
   },
+  "toast": {
+    "postCreated": "Post published!",
+    "postDeleted": "Post deleted.",
+    "deleteFailed": "Could not delete. Try again.",
+    "addedToCart": "Added to cart",
+    "productListed": "Product listed.",
+    "equipmentListed": "Equipment listed."
+  },
   "app": {
     "title": "AgroVibes",
     "subtitle": "Farming community, marketplace, and learning hub — in one place.",
     "pillFarmerFirst": "Farmer-first",
     "pillSocial": "Social + Commerce",
     "pillWebMvp": "Web MVP",
+    "usingCachedData": "Using cached data. Backend may be offline.",
     "cart": "Cart",
     "cartItem": "item",
     "cartItems": "items",
+    "clearCart": "Clear cart",
     "footer": "This is a front-end MVP prototype. To make it production-ready, connect it to a backend (authentication, database, payments, notifications) and deploy on web and mobile."
   },
   "nav": {

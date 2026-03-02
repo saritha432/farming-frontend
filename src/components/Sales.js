@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-function Sales({ items, cart, onAddToCart, onAddSalesItem }) {
+function Sales({ items, cart, loading, onAddToCart, onAddSalesItem }) {
   const { t } = useTranslation();
   const [showAddForm, setShowAddForm] = useState(false);
 
@@ -19,6 +19,26 @@ function Sales({ items, cart, onAddToCart, onAddSalesItem }) {
     form.reset();
     setShowAddForm(false);
   };
+
+  if (loading) {
+    return (
+      <section className="section">
+        <header className="section-header">
+          <h2>{t('sales.title')}</h2>
+          <p>{t('sales.description')}</p>
+        </header>
+        <div className="grid">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="card skeleton skeleton-card">
+              <div className="skeleton skeleton-line" style={{ width: '70%' }} />
+              <div className="skeleton skeleton-line short" />
+              <div className="skeleton skeleton-line" style={{ width: '40%', marginTop: '0.5rem' }} />
+            </div>
+          ))}
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="section">
@@ -67,36 +87,48 @@ function Sales({ items, cart, onAddToCart, onAddSalesItem }) {
           </form>
         </div>
       )}
-      <div className="grid">
-        {items.map((item) => (
-          <article key={item.id} className="card">
-            <h3>{item.name}</h3>
-            <p className="muted">
-              {item.farm} • {item.location}
-            </p>
-            <p className="highlight-text">{item.price}</p>
-            <div className="tag-row">
-              {(item.tags || []).map((tag) => (
-                <span key={tag} className="tag">
-                  {tag}
-                </span>
-              ))}
-            </div>
-            <div className="card-footer-row">
-              <button
-                type="button"
-                className="primary-btn"
-                onClick={() => onAddToCart(item)}
-              >
-                {t('sales.addToCart')}
-              </button>
-              <button type="button" className="ghost-btn">
-                {t('sales.viewFarmProfile')}
-              </button>
-            </div>
-          </article>
-        ))}
-      </div>
+      {!loading && items.length === 0 && (
+        <div className="empty-state card">
+          <div className="empty-state-icon" aria-hidden>🛒</div>
+          <h3>{t('sales.title')}</h3>
+          <p>No products listed yet. Add the first one to the marketplace.</p>
+          <button type="button" className="primary-btn mt-lg" onClick={() => setShowAddForm(true)}>
+            {t('sales.addProduct')}
+          </button>
+        </div>
+      )}
+      {items.length > 0 && (
+        <div className="grid">
+          {items.map((item) => (
+            <article key={item.id} className="card">
+              <h3>{item.name}</h3>
+              <p className="muted">
+                {item.farm} • {item.location}
+              </p>
+              <p className="highlight-text">{item.price}</p>
+              <div className="tag-row">
+                {(item.tags || []).map((tag) => (
+                  <span key={tag} className="tag">
+                    {tag}
+                  </span>
+                ))}
+              </div>
+              <div className="card-footer-row">
+                <button
+                  type="button"
+                  className="primary-btn"
+                  onClick={() => onAddToCart(item)}
+                >
+                  {t('sales.addToCart')}
+                </button>
+                <button type="button" className="ghost-btn">
+                  {t('sales.viewFarmProfile')}
+                </button>
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
       <aside className="card cart-card">
         <h3>{t('sales.yourCart')}</h3>
         {cart.length === 0 ? (
@@ -126,4 +158,3 @@ function Sales({ items, cart, onAddToCart, onAddSalesItem }) {
 }
 
 export default Sales;
-

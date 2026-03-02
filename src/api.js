@@ -35,6 +35,8 @@ function getClientId() {
 export const api = {
   getClientId,
 
+  getHealth: () => request('/api/health').catch(() => null),
+
   getPosts: (clientId) => {
     const q = clientId ? `?clientId=${encodeURIComponent(clientId)}` : '';
     return request(`/api/posts${q}`);

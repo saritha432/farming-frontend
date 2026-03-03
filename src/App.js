@@ -222,6 +222,43 @@ function App() {
     }
   };
 
+  const handleAddGuide = async (item) => {
+    try {
+      const created = await api.postGuide(item);
+      setApiData((prev) => ({ ...prev, guides: [...(prev.guides || data.guides), created] }));
+      addToast({ id: Date.now(), message: t('toast.guideCreated'), type: 'success' });
+    } catch {
+      setApiData((prev) => ({
+        ...prev,
+        guides: [
+          ...(prev.guides || data.guides),
+          {
+            ...item,
+            id: `user-guide-${Date.now()}`,
+          },
+        ],
+      }));
+      addToast({ id: Date.now(), message: t('toast.guideCreated'), type: 'success' });
+    }
+  };
+
+  const handleAddProduct = async (item) => {
+    try {
+      const created = await api.postProduct(item);
+      setApiData((prev) => ({ ...prev, products: [...(prev.products || data.products), created] }));
+      addToast({ id: Date.now(), message: t('toast.productGuidanceAdded'), type: 'success' });
+    } catch {
+      setApiData((prev) => ({
+        ...prev,
+        products: [
+          ...(prev.products || data.products),
+          { ...item, id: `user-product-${Date.now()}` },
+        ],
+      }));
+      addToast({ id: Date.now(), message: t('toast.productGuidanceAdded'), type: 'success' });
+    }
+  };
+
   const refreshPosts = () => {
     api.getPosts(api.getClientId()).then((r) => setApiData((prev) => ({ ...prev, posts: r }))).catch(() => {});
   };
@@ -364,7 +401,7 @@ function App() {
             )}
 
             {activeTab === TABS.KNOWLEDGE && (
-              <Knowledge guides={data.guides} loading={loading.knowledge} />
+              <Knowledge guides={data.guides} loading={loading.knowledge} onAddGuide={handleAddGuide} />
             )}
 
             {activeTab === TABS.EQUIPMENT && (
@@ -386,7 +423,7 @@ function App() {
             )}
 
             {activeTab === TABS.PRODUCTS && (
-              <Products products={data.products} />
+              <Products products={data.products} onAddProduct={handleAddProduct} />
             )}
 
             {activeTab === TABS.SALES && (

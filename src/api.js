@@ -82,6 +82,8 @@ export const api = {
   postJob: (body) => request('/api/jobs', { method: 'POST', body: JSON.stringify(body) }),
   postEquipment: (body) => request('/api/equipment', { method: 'POST', body: JSON.stringify(body) }),
   postSalesItem: (body) => request('/api/sales', { method: 'POST', body: JSON.stringify(body) }),
+  postGuide: (body) => request('/api/guides', { method: 'POST', body: JSON.stringify(body) }),
+  postProduct: (body) => request('/api/products', { method: 'POST', body: JSON.stringify(body) }),
 };
 
 export default api;

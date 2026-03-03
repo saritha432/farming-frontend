@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../api';
+import Modal from './Modal';
 
 const BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
@@ -112,12 +113,17 @@ function Media({ posts = [], loading, refreshPosts, onDeletePost, showToast, t: 
   if (loading) {
     return (
       <section className="section">
-        <header className="section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-          <h2 style={{ margin: 0, fontSize: '1.1rem' }}>{t('media.title')}</h2>
+        <header className="section-header">
+          <div className="section-header-main">
+            <h2>{t('media.title')}</h2>
+            <p className="muted">{t('media.description')}</p>
+          </div>
           {refreshPosts && (
-            <button type="button" className="primary-btn" style={{ fontSize: '0.8rem' }}>
-              {t('media.addPost')}
-            </button>
+            <div className="section-header-actions">
+              <button type="button" className="primary-btn">
+                {t('media.addPost')}
+              </button>
+            </div>
           )}
         </header>
         <div className="grid feed-grid">
@@ -131,41 +137,50 @@ function Media({ posts = [], loading, refreshPosts, onDeletePost, showToast, t: 
 
   return (
     <section className="section">
-      <header className="section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-        <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600 }}>{t('media.title')}</h2>
+      <header className="section-header">
+        <div className="section-header-main">
+          <h2>{t('media.title')}</h2>
+          <p className="muted">{t('media.description')}</p>
+        </div>
         {refreshPosts && (
-          <button
-            type="button"
-            className="primary-btn"
-            onClick={() => setShowAddForm((v) => !v)}
-            aria-expanded={showAddForm}
-            style={{ fontSize: '0.8rem', padding: '0.4rem 0.75rem' }}
-          >
-            {t('media.addPost')}
-          </button>
+          <div className="section-header-actions">
+            <button
+              type="button"
+              className="primary-btn"
+              onClick={() => setShowAddForm((v) => !v)}
+              aria-expanded={showAddForm}
+            >
+              {t('media.addPost')}
+            </button>
+          </div>
         )}
       </header>
 
       {showAddForm && (
-        <div className="card form-card media-form-card" style={{ marginBottom: '1.5rem', borderRadius: 8, border: '1px solid #dbdbdb' }}>
-          <h3>{t('media.newPost')}</h3>
-          <form onSubmit={handleSubmitPost}>
-            <label>
+        <Modal
+          title={t('media.newPost')}
+          onClose={() => {
+            setShowAddForm(false);
+            setTitleError('');
+          }}
+        >
+          <form onSubmit={handleSubmitPost} className="form">
+            <label className="form-label">
               {t('media.farmerName')}
-              <input type="text" name="farmer" placeholder={t('media.farmerName')} />
+              <input type="text" name="farmer" placeholder={t('media.farmerName')} className="form-input" />
             </label>
-            <label>
+            <label className="form-label">
               {t('sales.locationLabel')}
-              <input type="text" name="location" placeholder="e.g. Punjab, India" />
+              <input type="text" name="location" placeholder="e.g. Punjab, India" className="form-input" />
             </label>
-            <label>
+            <label className="form-label">
               Type
-              <select name="type">
+              <select name="type" className="form-input">
                 <option value="Photo">{t('media.uploadPhoto')}</option>
                 <option value="Video">{t('media.uploadVideo')}</option>
               </select>
             </label>
-            <label>
+            <label className="form-label">
               {t('media.titleLabel')} <span className="required">*</span>
               <input
                 type="text"
@@ -173,35 +188,44 @@ function Media({ posts = [], loading, refreshPosts, onDeletePost, showToast, t: 
                 placeholder={t('media.titleLabel')}
                 onChange={() => setTitleError('')}
                 aria-invalid={!!titleError}
+                className="form-input"
               />
               {titleError && <span className="form-error">{titleError}</span>}
             </label>
-            <label>
+            <label className="form-label">
               {t('media.descriptionLabel')}
-              <textarea name="description" rows={3} placeholder={t('media.descriptionLabel')} />
+              <textarea
+                name="description"
+                rows={3}
+                placeholder={t('media.descriptionLabel')}
+                className="form-input"
+              />
             </label>
-            <label>
+            <label className="form-label">
               {t('media.tagsLabel')}
-              <input type="text" name="tags" placeholder="#organic, #waterSaving" />
+              <input type="text" name="tags" placeholder="#organic, #waterSaving" className="form-input" />
             </label>
-            <label>
+            <label className="form-label">
               {t('media.uploadMedia')}
-              <input type="file" name="media" accept="image/*,video/*" />
+              <input type="file" name="media" accept="image/*,video/*" className="form-input" />
             </label>
-            <div className="card-footer-row">
+            <div className="card-footer-row mt">
               <button type="submit" className="primary-btn" disabled={uploading}>
                 {uploading ? '…' : t('media.post')}
               </button>
               <button
                 type="button"
                 className="ghost-btn"
-                onClick={() => { setShowAddForm(false); setTitleError(''); }}
+                onClick={() => {
+                  setShowAddForm(false);
+                  setTitleError('');
+                }}
               >
                 {t('common.cancel')}
               </button>
             </div>
           </form>
-        </div>
+        </Modal>
       )}
 
       {!loading && posts.length === 0 && (

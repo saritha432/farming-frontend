@@ -6,8 +6,10 @@ function Community() {
   return (
     <section className="section">
       <header className="section-header">
-        <h2>{t('community.title')}</h2>
-        <p>{t('community.description')}</p>
+        <div className="section-header-main">
+          <h2>{t('community.title')}</h2>
+          <p>{t('community.description')}</p>
+        </div>
       </header>
       <div className="grid two">
         <article className="card">

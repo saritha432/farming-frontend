@@ -6,8 +6,10 @@ function Learning({ courses }) {
   return (
     <section className="section">
       <header className="section-header">
-        <h2>{t('learning.title')}</h2>
-        <p>{t('learning.description')}</p>
+        <div className="section-header-main">
+          <h2>{t('learning.title')}</h2>
+          <p>{t('learning.description')}</p>
+        </div>
       </header>
       <div className="grid">
         {courses.map((course) => (

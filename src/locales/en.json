@@ -8,7 +8,9 @@
     "deleteFailed": "Could not delete. Try again.",
     "addedToCart": "Added to cart",
     "productListed": "Product listed.",
-    "equipmentListed": "Equipment listed."
+    "equipmentListed": "Equipment listed.",
+    "guideCreated": "Guide added.",
+    "productGuidanceAdded": "Fertilizer / seed guidance added."
   },
   "app": {
     "title": "AgroVibes",
@@ -70,7 +72,19 @@
     "notifyMe": "Notify me",
     "helpDesk": "New farmer help desk",
     "dropQuestions": "Drop your questions any time",
-    "ask": "Ask"
+    "ask": "Ask",
+    "shareGuide": "Share a guide",
+    "guideTitle": "Guide title",
+    "guideTitlePlaceholder": "e.g. How I manage drip irrigation in summer",
+    "guideLevel": "Experience level",
+    "levelBeginner": "Beginner",
+    "levelIntermediate": "Intermediate",
+    "levelAdvanced": "Advanced",
+    "guideDuration": "Reading time",
+    "guideDurationPlaceholder": "e.g. 8 min read",
+    "guideDescription": "Short description or key steps",
+    "guideDescriptionPlaceholder": "Describe your method, steps, or tips so other farmers can follow.",
+    "submitGuide": "Add guide"
   },
   "equipment": {
     "title": "Equipment Marketplace",
@@ -109,7 +123,18 @@
     "title": "Fertilizers & Seeds Guidance",
     "description": "Compare organic and chemical options with clear instructions, benefits, and risks.",
     "benefits": "Benefits",
-    "risksCautions": "Risks & cautions"
+    "risksCautions": "Risks & cautions",
+    "addGuidance": "Add guidance",
+    "productName": "Product name",
+    "productNamePlaceholder": "e.g. Urea 46% N, Hybrid maize seed",
+    "typeLabel": "Type",
+    "typeOrganic": "Organic",
+    "typeChemical": "Chemical",
+    "cropsLabel": "Crops / use cases",
+    "cropsPlaceholder": "e.g. Wheat, rice, sugarcane",
+    "benefitsPlaceholder": "What does this product help with? Yield, soil health, pest control…",
+    "risksPlaceholder": "Overuse risks, compatibility issues, safety precautions…",
+    "submitGuidance": "Add guidance"
   },
   "sales": {
     "title": "Direct Farmer-to-Customer Sales",

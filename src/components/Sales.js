@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import Modal from './Modal';
 
 function Sales({ items, cart, loading, onAddToCart, onAddSalesItem }) {
   const { t } = useTranslation();
@@ -24,8 +25,10 @@ function Sales({ items, cart, loading, onAddToCart, onAddSalesItem }) {
     return (
       <section className="section">
         <header className="section-header">
-          <h2>{t('sales.title')}</h2>
-          <p>{t('sales.description')}</p>
+          <div className="section-header-main">
+            <h2>{t('sales.title')}</h2>
+            <p>{t('sales.description')}</p>
+          </div>
         </header>
         <div className="grid">
           {[1, 2, 3].map((i) => (
@@ -43,49 +46,83 @@ function Sales({ items, cart, loading, onAddToCart, onAddSalesItem }) {
   return (
     <section className="section">
       <header className="section-header">
-        <h2>{t('sales.title')}</h2>
-        <p>{t('sales.description')}</p>
-        <button
-          type="button"
-          className="primary-btn"
-          onClick={() => setShowAddForm((v) => !v)}
-          aria-expanded={showAddForm}
-        >
-          {t('sales.addProduct')}
-        </button>
+        <div className="section-header-main">
+          <h2>{t('sales.title')}</h2>
+          <p>{t('sales.description')}</p>
+        </div>
+        <div className="section-header-actions">
+          <button
+            type="button"
+            className="primary-btn"
+            onClick={() => setShowAddForm((v) => !v)}
+            aria-expanded={showAddForm}
+          >
+            {t('sales.addProduct')}
+          </button>
+        </div>
       </header>
       {showAddForm && (
-        <div className="card form-card">
-          <h3>{t('sales.addProduct')}</h3>
-          <form onSubmit={handleSubmitProduct}>
-            <label>
+        <Modal
+          title={t('sales.addProduct')}
+          onClose={() => setShowAddForm(false)}
+        >
+          <form onSubmit={handleSubmitProduct} className="form">
+            <label className="form-label">
               {t('sales.productName')}
-              <input type="text" name="productName" required placeholder={t('sales.productName')} />
+              <input
+                type="text"
+                name="productName"
+                required
+                placeholder={t('sales.productName')}
+                className="form-input"
+              />
             </label>
-            <label>
+            <label className="form-label">
               {t('sales.farmName')}
-              <input type="text" name="farmName" required placeholder={t('sales.farmName')} />
+              <input
+                type="text"
+                name="farmName"
+                required
+                placeholder={t('sales.farmName')}
+                className="form-input"
+              />
             </label>
-            <label>
+            <label className="form-label">
               {t('sales.priceLabel')}
-              <input type="text" name="price" required placeholder="₹50 / kg" />
+              <input
+                type="text"
+                name="price"
+                required
+                placeholder="₹50 / kg"
+                className="form-input"
+              />
             </label>
-            <label>
+            <label className="form-label">
               {t('sales.locationLabel')}
-              <input type="text" name="location" placeholder={t('sales.locationLabel')} />
+              <input
+                type="text"
+                name="location"
+                placeholder={t('sales.locationLabel')}
+                className="form-input"
+              />
             </label>
-            <label>
+            <label className="form-label">
               {t('sales.tagsPlaceholder')}
-              <input type="text" name="tags" placeholder={t('sales.tagsPlaceholder')} />
+              <input
+                type="text"
+                name="tags"
+                placeholder={t('sales.tagsPlaceholder')}
+                className="form-input"
+              />
             </label>
-            <div className="card-footer-row">
+            <div className="card-footer-row mt">
               <button type="submit" className="primary-btn">{t('sales.submitProduct')}</button>
               <button type="button" className="ghost-btn" onClick={() => setShowAddForm(false)}>
                 {t('common.cancel')}
               </button>
             </div>
           </form>
-        </div>
+        </Modal>
       )}
       {!loading && items.length === 0 && (
         <div className="empty-state card">

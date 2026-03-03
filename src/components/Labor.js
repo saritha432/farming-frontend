@@ -1,13 +1,17 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import Modal from './Modal';
 
 function Labor({ laborProfiles, jobs, onCreateJob }) {
   const { t } = useTranslation();
+  const [showJobForm, setShowJobForm] = useState(false);
   return (
     <section className="section">
       <header className="section-header">
-        <h2>{t('labor.title')}</h2>
-        <p>{t('labor.description')}</p>
+        <div className="section-header-main">
+          <h2>{t('labor.title')}</h2>
+          <p>{t('labor.description')}</p>
+        </div>
       </header>
 
       <div className="grid two">
@@ -40,7 +44,44 @@ function Labor({ laborProfiles, jobs, onCreateJob }) {
         <div className="card">
           <h3>{t('labor.postJob')}</h3>
           <p className="muted">{t('labor.postJobNote')}</p>
-          <form className="form" onSubmit={onCreateJob}>
+          <button
+            type="button"
+            className="primary-btn mt"
+            onClick={() => setShowJobForm(true)}
+          >
+            {t('labor.postJobBtn')}
+          </button>
+          <h4 className="mt-lg">{t('labor.openJobs')}</h4>
+          <ul className="list">
+            {jobs.map((job) => (
+              <li key={job.id} className="list-item">
+                <div>
+                  <div className="list-title">{job.title}</div>
+                  <div className="muted">
+                    {job.location} • {job.type}
+                  </div>
+                </div>
+                <button type="button" className="small-btn">
+                  {t('labor.viewApplicants')}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+
+      {showJobForm && (
+        <Modal
+          title={t('labor.postJob')}
+          onClose={() => setShowJobForm(false)}
+        >
+          <form
+            className="form"
+            onSubmit={(e) => {
+              onCreateJob(e);
+              setShowJobForm(false);
+            }}
+          >
             <label className="form-label">
               {t('labor.jobTitle')}
               <input
@@ -68,29 +109,21 @@ function Labor({ laborProfiles, jobs, onCreateJob }) {
                 className="form-input"
               />
             </label>
-            <button type="submit" className="primary-btn full-width">
-              {t('labor.postJobBtn')}
-            </button>
+            <div className="card-footer-row mt">
+              <button type="submit" className="primary-btn full-width">
+                {t('labor.postJobBtn')}
+              </button>
+              <button
+                type="button"
+                className="ghost-btn"
+                onClick={() => setShowJobForm(false)}
+              >
+                {t('common.cancel')}
+              </button>
+            </div>
           </form>
-
-          <h4 className="mt-lg">{t('labor.openJobs')}</h4>
-          <ul className="list">
-            {jobs.map((job) => (
-              <li key={job.id} className="list-item">
-                <div>
-                  <div className="list-title">{job.title}</div>
-                  <div className="muted">
-                    {job.location} • {job.type}
-                  </div>
-                </div>
-                <button type="button" className="small-btn">
-                  {t('labor.viewApplicants')}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </div>
+        </Modal>
+      )}
     </section>
   );
 }

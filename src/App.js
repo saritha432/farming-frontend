@@ -26,7 +26,19 @@ const TABS = {
 
 function App() {
   const { t, i18n } = useTranslation();
-  const [activeTab, setActiveTab] = useState(TABS.FEED);
+  const [activeTab, setActiveTab] = useState(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = window.localStorage.getItem('agrovibes_active_tab');
+        if (saved && Object.values(TABS).includes(saved)) {
+          return saved;
+        }
+      } catch {
+        // ignore
+      }
+    }
+    return TABS.FEED;
+  });
   const [cart, setCart] = useState([]);
   const [showCartDropdown, setShowCartDropdown] = useState(false);
   const [apiOnline, setApiOnline] = useState(true);
@@ -51,35 +63,90 @@ function App() {
 
   useEffect(() => {
     let cancelled = false;
-    api.getHealth && api.getHealth().then((r) => {
-      if (!cancelled) setApiOnline(r && r.ok);
-    }).catch(() => {
-      if (!cancelled) setApiOnline(false);
-    });
-    return () => { cancelled = true; };
+    api.getHealth &&
+      api
+        .getHealth()
+        .then((r) => {
+          if (!cancelled) setApiOnline(r && r.ok);
+        })
+        .catch(() => {
+          if (!cancelled) setApiOnline(false);
+        });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([
-      api.getPosts(api.getClientId()).then((r) => ({ posts: r })).catch(() => null),
-      api.getGuides().then((r) => ({ guides: r })).catch(() => null),
-      api.getEquipment().then((r) => ({ equipment: r })).catch(() => null),
-      api.getWorkers().then((r) => ({ workers: r })).catch(() => null),
-      api.getJobs().then((r) => ({ jobs: r })).catch(() => null),
-      api.getProducts().then((r) => ({ products: r })).catch(() => null),
-      api.getSales().then((r) => ({ salesItems: r })).catch(() => null),
-      api.getCourses().then((r) => ({ courses: r })).catch(() => null),
-    ]).then((results) => {
-      if (cancelled) return;
-      const next = {};
-      results.forEach((r) => r && Object.assign(next, r));
-      if (Object.keys(next).length > 0) {
-        setApiData((prev) => ({ ...prev, ...next }));
+
+    const loadForTab = async () => {
+      try {
+        if (activeTab === TABS.FEED && apiData.posts === null) {
+          const posts = await api.getPosts(api.getClientId()).catch(() => null);
+          if (!cancelled && Array.isArray(posts)) {
+            setApiData((prev) => ({ ...prev, posts }));
+          }
+        }
+
+        if (activeTab === TABS.KNOWLEDGE && apiData.guides === null) {
+          const guides = await api.getGuides().catch(() => null);
+          if (!cancelled && Array.isArray(guides)) {
+            setApiData((prev) => ({ ...prev, guides }));
+          }
+        }
+
+        if (activeTab === TABS.EQUIPMENT && apiData.equipment === null) {
+          const equipment = await api.getEquipment().catch(() => null);
+          if (!cancelled && Array.isArray(equipment)) {
+            setApiData((prev) => ({ ...prev, equipment }));
+          }
+        }
+
+        if (activeTab === TABS.LABOR && (apiData.workers === null || apiData.jobs === null)) {
+          const [workers, jobs] = await Promise.all([
+            api.getWorkers().catch(() => null),
+            api.getJobs().catch(() => null),
+          ]);
+          const next = {};
+          if (Array.isArray(workers)) next.workers = workers;
+          if (Array.isArray(jobs)) next.jobs = jobs;
+          if (!cancelled && Object.keys(next).length) {
+            setApiData((prev) => ({ ...prev, ...next }));
+          }
+        }
+
+        if (activeTab === TABS.PRODUCTS && apiData.products === null) {
+          const products = await api.getProducts().catch(() => null);
+          if (!cancelled && Array.isArray(products)) {
+            setApiData((prev) => ({ ...prev, products }));
+          }
+        }
+
+        if (activeTab === TABS.SALES && apiData.salesItems === null) {
+          const salesItems = await api.getSales().catch(() => null);
+          if (!cancelled && Array.isArray(salesItems)) {
+            setApiData((prev) => ({ ...prev, salesItems }));
+          }
+        }
+
+        if (activeTab === TABS.LEARNING && apiData.courses === null) {
+          const courses = await api.getCourses().catch(() => null);
+          if (!cancelled && Array.isArray(courses)) {
+            setApiData((prev) => ({ ...prev, courses }));
+          }
+        }
+      } catch {
+        // ignore individual load errors here; UI already handles empty states
       }
-    });
-    return () => { cancelled = true; };
-  }, []);
+    };
+
+    loadForTab();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, apiData, setApiData]);
 
   const data = {
     posts: Array.isArray(apiData.posts) ? apiData.posts : [],
@@ -185,8 +252,38 @@ function App() {
         </div>
         <div className="app-header-meta">
           <div className="app-header-icons">
-            <button type="button" aria-label="Home" onClick={() => setActiveTab(TABS.FEED)}>🏠</button>
-            <button type="button" aria-label="Explore" onClick={() => setActiveTab(TABS.KNOWLEDGE)}>🔍</button>
+            <button
+              type="button"
+              aria-label="Home"
+              onClick={() => {
+                setActiveTab(TABS.FEED);
+                if (typeof window !== 'undefined') {
+                  try {
+                    window.localStorage.setItem('agrovibes_active_tab', TABS.FEED);
+                  } catch {
+                    // ignore
+                  }
+                }
+              }}
+            >
+              🏠
+            </button>
+            <button
+              type="button"
+              aria-label="Explore"
+              onClick={() => {
+                setActiveTab(TABS.KNOWLEDGE);
+                if (typeof window !== 'undefined') {
+                  try {
+                    window.localStorage.setItem('agrovibes_active_tab', TABS.KNOWLEDGE);
+                  } catch {
+                    // ignore
+                  }
+                }
+              }}
+            >
+              🔍
+            </button>
             <button type="button" aria-label="Cart">❤️</button>
           </div>
           <select
@@ -237,7 +334,20 @@ function App() {
         </div>
       </header>
 
-      <NavBar activeTab={activeTab} onChangeTab={setActiveTab} tabs={TABS} />
+      <NavBar
+        activeTab={activeTab}
+        onChangeTab={(tab) => {
+          setActiveTab(tab);
+          if (typeof window !== 'undefined') {
+            try {
+              window.localStorage.setItem('agrovibes_active_tab', tab);
+            } catch {
+              // ignore
+            }
+          }
+        }}
+        tabs={TABS}
+      />
 
       <main className="app-main">
         <div className="ig-shell">

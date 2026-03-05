@@ -72,6 +72,10 @@ export const api = {
     }),
 
   getGuides: () => request('/api/guides'),
+  getKnowledgeSessions: (clientId) => {
+    const q = clientId ? `?clientId=${encodeURIComponent(clientId)}` : '';
+    return request(`/api/knowledge/sessions${q}`);
+  },
   getEquipment: () => request('/api/equipment'),
   getWorkers: () => request('/api/workers'),
   getJobs: () => request('/api/jobs'),
@@ -95,7 +99,31 @@ export const api = {
     }
     return request('/api/guides', { method: 'POST', body: JSON.stringify(body) });
   },
+  updateGuide: (id, body) =>
+    request(`/api/guides/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    }),
+  deleteGuide: (id) =>
+    request(`/api/guides/${id}`, {
+      method: 'DELETE',
+    }),
   postProduct: (body) => request('/api/products', { method: 'POST', body: JSON.stringify(body) }),
+  createKnowledgeSession: (body) =>
+    request('/api/knowledge/sessions', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  subscribeKnowledgeSession: (sessionId, clientId) =>
+    request(`/api/knowledge/sessions/${sessionId}/subscribe`, {
+      method: 'POST',
+      body: JSON.stringify({ clientId }),
+    }),
+  postKnowledgeQuestion: (sessionId, body) =>
+    request(`/api/knowledge/sessions/${sessionId}/questions`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
 };
 
 export default api;

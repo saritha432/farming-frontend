@@ -82,7 +82,19 @@ export const api = {
   postJob: (body) => request('/api/jobs', { method: 'POST', body: JSON.stringify(body) }),
   postEquipment: (body) => request('/api/equipment', { method: 'POST', body: JSON.stringify(body) }),
   postSalesItem: (body) => request('/api/sales', { method: 'POST', body: JSON.stringify(body) }),
-  postGuide: (body) => request('/api/guides', { method: 'POST', body: JSON.stringify(body) }),
+  postGuide: (body) => {
+    // Support both JSON body and FormData (for file uploads)
+    if (body instanceof FormData) {
+      return fetch(`${BASE}/api/guides`, {
+        method: 'POST',
+        body,
+      }).then((res) => {
+        if (!res.ok) throw new Error(res.statusText || 'Upload failed');
+        return res.json();
+      });
+    }
+    return request('/api/guides', { method: 'POST', body: JSON.stringify(body) });
+  },
   postProduct: (body) => request('/api/products', { method: 'POST', body: JSON.stringify(body) }),
 };
 

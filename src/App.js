@@ -224,7 +224,23 @@ function App() {
 
   const handleAddGuide = async (item) => {
     try {
-      const created = await api.postGuide(item);
+      let created;
+      if (item.file) {
+        const formData = new FormData();
+        formData.append('title', item.title);
+        if (item.level) formData.append('level', item.level);
+        if (item.duration) formData.append('duration', item.duration);
+        if (item.description) formData.append('description', item.description);
+        formData.append('file', item.file);
+        created = await api.postGuide(formData);
+      } else {
+        created = await api.postGuide({
+          title: item.title,
+          level: item.level,
+          duration: item.duration,
+          description: item.description,
+        });
+      }
       setApiData((prev) => ({ ...prev, guides: [...(prev.guides || data.guides), created] }));
       addToast({ id: Date.now(), message: t('toast.guideCreated'), type: 'success' });
     } catch {

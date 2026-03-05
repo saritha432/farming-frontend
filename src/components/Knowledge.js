@@ -2,10 +2,28 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import Modal from './Modal';
 
-function Knowledge({ guides, loading, onAddGuide }) {
+function Knowledge({
+  guides,
+  loading,
+  onAddGuide,
+  onUpdateGuide,
+  onDeleteGuide,
+  sessions = [],
+  onToggleSubscribe,
+  onAskQuestion,
+}) {
   const { t } = useTranslation();
   const [openGuide, setOpenGuide] = useState(null);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [questionSession, setQuestionSession] = useState(null);
+  const [questionText, setQuestionText] = useState('');
+  const [editingGuide, setEditingGuide] = useState(null);
+  const [editValues, setEditValues] = useState({
+    title: '',
+    level: 'Beginner',
+    duration: '',
+    description: '',
+  });
 
   const handleSubmitGuide = (e) => {
     e.preventDefault();
@@ -15,12 +33,18 @@ function Knowledge({ guides, loading, onAddGuide }) {
     const level = form.level.value.trim();
     const duration = form.duration.value.trim();
     const description = form.description.value.trim();
+    const scheduleSession = form.scheduleSession.checked;
+    const scheduleAt = form.scheduleAt.value;
+    const fileInput = form.file;
     if (!title) return;
     onAddGuide({
       title,
       level,
       duration,
       description,
+      file: fileInput && fileInput.files && fileInput.files[0] ? fileInput.files[0] : null,
+      scheduleSession,
+      scheduleAt,
     });
     form.reset();
     setShowAddForm(false);
@@ -114,6 +138,28 @@ function Knowledge({ guides, loading, onAddGuide }) {
                 className="form-input"
               />
             </label>
+            <label className="form-label">
+              {/* No translation key yet; plain text is fine */}
+              Guide file (PDF, optional)
+              <input
+                type="file"
+                name="file"
+                accept=".pdf,application/pdf"
+                className="form-input"
+              />
+            </label>
+            <label className="form-label">
+              {/* Schedule live Q&A for this guide */}
+              <span>
+                <input type="checkbox" name="scheduleSession" style={{ marginRight: 8 }} />
+                Schedule a live Q&amp;A session
+              </span>
+              <input
+                type="datetime-local"
+                name="scheduleAt"
+                className="form-input"
+              />
+            </label>
             <div className="card-footer-row mt">
               <button type="submit" className="primary-btn">
                 {t('knowledge.submitGuide')}
@@ -141,13 +187,47 @@ function Knowledge({ guides, loading, onAddGuide }) {
                     {guide.level} • {guide.duration}
                   </div>
                 </div>
-                <button
-                  type="button"
-                  className="small-btn"
-                  onClick={() => setOpenGuide(guide)}
-                >
-                  {t('knowledge.open')}
-                </button>
+                <div className="list-actions">
+                  <button
+                    type="button"
+                    className="small-btn"
+                    onClick={() => setOpenGuide(guide)}
+                  >
+                    {t('knowledge.open')}
+                  </button>
+                  {onUpdateGuide && (
+                    <button
+                      type="button"
+                      className="small-btn"
+                      onClick={() => {
+                        setEditingGuide(guide);
+                        setEditValues({
+                          title: guide.title || '',
+                          level: guide.level || 'Beginner',
+                          duration: guide.duration || '',
+                          description: guide.description || '',
+                        });
+                      }}
+                      style={{ marginLeft: 8 }}
+                    >
+                      Edit
+                    </button>
+                  )}
+                  {onDeleteGuide && (
+                    <button
+                      type="button"
+                      className="small-btn"
+                      onClick={() => {
+                        if (window.confirm('Delete this guide?')) {
+                          onDeleteGuide(guide.id);
+                        }
+                      }}
+                      style={{ marginLeft: 8 }}
+                    >
+                      Delete
+                    </button>
+                  )}
+                </div>
               </li>
             ))}
           </ul>
@@ -155,26 +235,54 @@ function Knowledge({ guides, loading, onAddGuide }) {
         <div className="card">
           <h3>{t('knowledge.liveQA')}</h3>
           <p className="muted">{t('knowledge.liveQADesc')}</p>
-          <ul className="list">
-            <li className="list-item">
-              <div>
-                <div className="list-title">{t('knowledge.weeklySoil')}</div>
-                <div className="muted">{t('knowledge.saturdayTime')}</div>
-              </div>
-              <button type="button" className="small-btn">
-                {t('knowledge.notifyMe')}
-              </button>
-            </li>
-            <li className="list-item">
-              <div>
-                <div className="list-title">{t('knowledge.helpDesk')}</div>
-                <div className="muted">{t('knowledge.dropQuestions')}</div>
-              </div>
-              <button type="button" className="small-btn">
-                {t('knowledge.ask')}
-              </button>
-            </li>
-          </ul>
+          {sessions.length === 0 ? (
+            <p className="muted">No live sessions scheduled yet.</p>
+          ) : (
+            <ul className="list">
+              {sessions.map((session) => (
+                <li key={session.id} className="list-item">
+                  <div>
+                    <div className="list-title">{session.title}</div>
+                    {session.schedule && (
+                      <div className="muted">{session.schedule}</div>
+                    )}
+                    {session.description && (
+                      <div className="muted">{session.description}</div>
+                    )}
+                    <div className="muted" style={{ marginTop: '0.25rem' }}>
+                      {session.questionCount} questions •{' '}
+                      {session.subscriberCount} subscribed
+                    </div>
+                  </div>
+                  <div className="list-actions">
+                    {onToggleSubscribe && (
+                      <button
+                        type="button"
+                        className="small-btn"
+                        onClick={() => onToggleSubscribe(session.id)}
+                      >
+                        {session.isSubscribed
+                          ? 'Subscribed'
+                          : t('knowledge.notifyMe')}
+                      </button>
+                    )}
+                    {onAskQuestion && (
+                      <button
+                        type="button"
+                        className="small-btn"
+                        onClick={() => {
+                          setQuestionSession(session);
+                          setQuestionText('');
+                        }}
+                      >
+                        {t('knowledge.ask')}
+                      </button>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       </div>
 
@@ -191,6 +299,127 @@ function Knowledge({ guides, loading, onAddGuide }) {
             {openGuide.description
               || 'Full guide content would load here. In a production app, this could be rich text, steps, or embedded video.'}
           </p>
+        </Modal>
+      )}
+      {editingGuide && (
+        <Modal
+          title="Edit guide"
+          onClose={() => setEditingGuide(null)}
+          labelledById="edit-guide-modal-title"
+        >
+          <form
+            className="form"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (!onUpdateGuide) return;
+              onUpdateGuide(editingGuide.id, editValues);
+              setEditingGuide(null);
+            }}
+          >
+            <label className="form-label">
+              {t('knowledge.guideTitle')}
+              <input
+                type="text"
+                className="form-input"
+                value={editValues.title}
+                onChange={(e) => setEditValues((v) => ({ ...v, title: e.target.value }))}
+              />
+            </label>
+            <label className="form-label">
+              {t('knowledge.guideLevel')}
+              <select
+                className="form-input"
+                value={editValues.level}
+                onChange={(e) => setEditValues((v) => ({ ...v, level: e.target.value }))}
+              >
+                <option value="Beginner">{t('knowledge.levelBeginner')}</option>
+                <option value="Intermediate">{t('knowledge.levelIntermediate')}</option>
+                <option value="Advanced">{t('knowledge.levelAdvanced')}</option>
+              </select>
+            </label>
+            <label className="form-label">
+              {t('knowledge.guideDuration')}
+              <input
+                type="text"
+                className="form-input"
+                value={editValues.duration}
+                onChange={(e) => setEditValues((v) => ({ ...v, duration: e.target.value }))}
+              />
+            </label>
+            <label className="form-label">
+              {t('knowledge.guideDescription')}
+              <textarea
+                rows="4"
+                className="form-input"
+                value={editValues.description}
+                onChange={(e) => setEditValues((v) => ({ ...v, description: e.target.value }))}
+              />
+            </label>
+            <div className="card-footer-row mt">
+              <button type="submit" className="primary-btn">
+                Save
+              </button>
+              <button
+                type="button"
+                className="ghost-btn"
+                onClick={() => setEditingGuide(null)}
+              >
+                {t('common.cancel')}
+              </button>
+            </div>
+          </form>
+        </Modal>
+      )}
+      {questionSession && (
+        <Modal
+          title={t('knowledge.ask')}
+          onClose={() => {
+            setQuestionSession(null);
+            setQuestionText('');
+          }}
+          labelledById="knowledge-question-modal-title"
+        >
+          <form
+            className="form"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (!onAskQuestion) return;
+              const text = questionText.trim();
+              if (!text) return;
+              onAskQuestion(questionSession.id, text);
+              setQuestionSession(null);
+              setQuestionText('');
+            }}
+          >
+            <label className="form-label">
+              {t('knowledge.dropQuestions')}
+              <textarea
+                className="form-input"
+                rows="3"
+                value={questionText}
+                onChange={(e) => setQuestionText(e.target.value)}
+              />
+            </label>
+            <div className="card-footer-row mt">
+              <button
+                type="submit"
+                className="primary-btn"
+                disabled={!questionText.trim()}
+              >
+                {t('knowledge.submitGuide')}
+              </button>
+              <button
+                type="button"
+                className="ghost-btn"
+                onClick={() => {
+                  setQuestionSession(null);
+                  setQuestionText('');
+                }}
+              >
+                {t('common.cancel')}
+              </button>
+            </div>
+          </form>
         </Modal>
       )}
     </section>

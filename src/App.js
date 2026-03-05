@@ -52,6 +52,7 @@ function App() {
     products: null,
     salesItems: null,
     courses: null,
+    knowledgeSessions: null,
   });
 
   const addToast = useCallback(({ id, message, type }) => {
@@ -89,10 +90,21 @@ function App() {
           }
         }
 
-        if (activeTab === TABS.KNOWLEDGE && apiData.guides === null) {
-          const guides = await api.getGuides().catch(() => null);
-          if (!cancelled && Array.isArray(guides)) {
-            setApiData((prev) => ({ ...prev, guides }));
+        if (activeTab === TABS.KNOWLEDGE) {
+          if (apiData.guides === null) {
+            const guides = await api.getGuides().catch(() => null);
+            if (!cancelled && Array.isArray(guides)) {
+              setApiData((prev) => ({ ...prev, guides }));
+            }
+          }
+
+          if (apiData.knowledgeSessions === null) {
+            const sessions = await api
+              .getKnowledgeSessions(api.getClientId())
+              .catch(() => null);
+            if (!cancelled && Array.isArray(sessions)) {
+              setApiData((prev) => ({ ...prev, knowledgeSessions: sessions }));
+            }
           }
         }
 
@@ -157,6 +169,9 @@ function App() {
     products: Array.isArray(apiData.products) ? apiData.products : [],
     salesItems: Array.isArray(apiData.salesItems) ? apiData.salesItems : [],
     courses: Array.isArray(apiData.courses) ? apiData.courses : [],
+    knowledgeSessions: Array.isArray(apiData.knowledgeSessions)
+      ? apiData.knowledgeSessions
+      : [],
   };
 
   const loading = {
@@ -224,9 +239,45 @@ function App() {
 
   const handleAddGuide = async (item) => {
     try {
-      const created = await api.postGuide(item);
+      let created;
+      if (item.file) {
+        const formData = new FormData();
+        formData.append('title', item.title);
+        if (item.level) formData.append('level', item.level);
+        if (item.duration) formData.append('duration', item.duration);
+        if (item.description) formData.append('description', item.description);
+        formData.append('file', item.file);
+        created = await api.postGuide(formData);
+      } else {
+        created = await api.postGuide({
+          title: item.title,
+          level: item.level,
+          duration: item.duration,
+          description: item.description,
+        });
+      }
       setApiData((prev) => ({ ...prev, guides: [...(prev.guides || data.guides), created] }));
       addToast({ id: Date.now(), message: t('toast.guideCreated'), type: 'success' });
+
+      if (item.scheduleSession && item.scheduleAt) {
+        try {
+          await api.createKnowledgeSession({
+            title: created.title,
+            description: created.description || '',
+            schedule: item.scheduleAt,
+            host: '',
+            status: 'upcoming',
+          });
+          const refreshed = await api
+            .getKnowledgeSessions(api.getClientId())
+            .catch(() => null);
+          if (Array.isArray(refreshed)) {
+            setApiData((prev) => ({ ...prev, knowledgeSessions: refreshed }));
+          }
+        } catch {
+          // ignore scheduling errors; guide creation already succeeded
+        }
+      }
     } catch {
       setApiData((prev) => ({
         ...prev,
@@ -239,6 +290,64 @@ function App() {
         ],
       }));
       addToast({ id: Date.now(), message: t('toast.guideCreated'), type: 'success' });
+    }
+  };
+
+  const handleUpdateGuide = async (id, updates) => {
+    try {
+      const updated = await api.updateGuide(id, updates);
+      setApiData((prev) => ({
+        ...prev,
+        guides: (prev.guides || data.guides).map((g) => (g.id === id ? updated : g)),
+      }));
+      addToast({ id: Date.now(), message: t('toast.guideCreated'), type: 'success' });
+    } catch {
+      // ignore errors for now
+    }
+  };
+
+  const handleDeleteGuide = async (id) => {
+    try {
+      await api.deleteGuide(id);
+    } catch {
+      // even if delete fails on server, reflect locally
+    }
+    setApiData((prev) => ({
+      ...prev,
+      guides: (prev.guides || data.guides).filter((g) => g.id !== id),
+    }));
+  };
+
+  const handleToggleKnowledgeSubscribe = async (sessionId) => {
+    try {
+      await api.subscribeKnowledgeSession(sessionId, api.getClientId());
+      const refreshed = await api
+        .getKnowledgeSessions(api.getClientId())
+        .catch(() => null);
+      if (Array.isArray(refreshed)) {
+        setApiData((prev) => ({ ...prev, knowledgeSessions: refreshed }));
+      }
+    } catch {
+      // ignore, user will just see unchanged state
+    }
+  };
+
+  const handleAskKnowledgeQuestion = async (sessionId, text) => {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    try {
+      await api.postKnowledgeQuestion(sessionId, {
+        author: 'Farmer',
+        text: trimmed,
+      });
+      const refreshed = await api
+        .getKnowledgeSessions(api.getClientId())
+        .catch(() => null);
+      if (Array.isArray(refreshed)) {
+        setApiData((prev) => ({ ...prev, knowledgeSessions: refreshed }));
+      }
+    } catch {
+      // ignore for now
     }
   };
 
@@ -401,7 +510,16 @@ function App() {
             )}
 
             {activeTab === TABS.KNOWLEDGE && (
-              <Knowledge guides={data.guides} loading={loading.knowledge} onAddGuide={handleAddGuide} />
+              <Knowledge
+                guides={data.guides}
+                loading={loading.knowledge}
+                onAddGuide={handleAddGuide}
+                onUpdateGuide={handleUpdateGuide}
+                onDeleteGuide={handleDeleteGuide}
+                sessions={data.knowledgeSessions}
+                onToggleSubscribe={handleToggleKnowledgeSubscribe}
+                onAskQuestion={handleAskKnowledgeQuestion}
+              />
             )}
 
             {activeTab === TABS.EQUIPMENT && (

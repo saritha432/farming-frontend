@@ -12,6 +12,7 @@ function Media({ posts = [], loading, refreshPosts, onDeletePost, showToast, t: 
   const [uploading, setUploading] = useState(false);
   const [titleError, setTitleError] = useState('');
   const [expandedComments, setExpandedComments] = useState({});
+  const [commentsLoading, setCommentsLoading] = useState({});
   const [commentText, setCommentText] = useState({});
   const [commentsCache, setCommentsCache] = useState({});
   const [postingComment, setPostingComment] = useState({});
@@ -69,12 +70,15 @@ function Media({ posts = [], loading, refreshPosts, onDeletePost, showToast, t: 
       setExpandedComments((prev) => ({ ...prev, [postId]: false }));
       return;
     }
+    setCommentsLoading((prev) => ({ ...prev, [postId]: true }));
     setExpandedComments((prev) => ({ ...prev, [postId]: true }));
     try {
       const list = await api.getComments(postId);
       setCommentsCache((prev) => ({ ...prev, [postId]: list }));
     } catch (err) {
       console.error(err);
+    } finally {
+      setCommentsLoading((prev) => ({ ...prev, [postId]: false }));
     }
   };
 
@@ -263,9 +267,9 @@ function Media({ posts = [], loading, refreshPosts, onDeletePost, showToast, t: 
                     <button
                       type="button"
                       onClick={() => handleDelete(post.id, post.title)}
-                      aria-label={t('media.delete')}
+                    aria-label={t('media.delete')}
                     >
-                      ⋮
+                    🗑️ {t('media.delete')}
                     </button>
                   </div>
                 </div>
@@ -293,7 +297,7 @@ function Media({ posts = [], loading, refreshPosts, onDeletePost, showToast, t: 
                       {isLiked ? '❤️' : '🤍'}
                     </button>
                     <button type="button" onClick={() => toggleComments(post.id)}>
-                      💬
+                      💬{commentCount > 0 ? ` ${commentCount}` : ''}
                     </button>
                     <button type="button">✈️</button>
                   </div>
@@ -325,14 +329,19 @@ function Media({ posts = [], loading, refreshPosts, onDeletePost, showToast, t: 
                     </button>
                   )}
                   {expanded && (
-                    <ul className="ig-comments-list">
-                      {comments.map((c) => (
-                        <li key={c.id}>
-                          <span className="ig-comment-author">{c.author}</span>
-                          {c.text}
-                        </li>
-                      ))}
-                    </ul>
+                    <div>
+                      {commentsLoading[post.id] && (
+                        <div className="ig-comments-loading">Loading comments…</div>
+                      )}
+                      <ul className="ig-comments-list">
+                        {comments.map((c) => (
+                          <li key={c.id}>
+                            <span className="ig-comment-author">{c.author}</span>
+                            {c.text}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   )}
                 </div>
 

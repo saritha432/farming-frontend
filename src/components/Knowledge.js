@@ -15,12 +15,14 @@ function Knowledge({ guides, loading, onAddGuide }) {
     const level = form.level.value.trim();
     const duration = form.duration.value.trim();
     const description = form.description.value.trim();
+    const fileInput = form.file;
     if (!title) return;
     onAddGuide({
       title,
       level,
       duration,
       description,
+      file: fileInput && fileInput.files && fileInput.files[0] ? fileInput.files[0] : null,
     });
     form.reset();
     setShowAddForm(false);
@@ -111,6 +113,16 @@ function Knowledge({ guides, loading, onAddGuide }) {
                 name="description"
                 rows="4"
                 placeholder={t('knowledge.guideDescriptionPlaceholder')}
+                className="form-input"
+              />
+            </label>
+            <label className="form-label">
+              {/* No translation key yet; plain text is fine */}
+              Guide file (PDF, optional)
+              <input
+                type="file"
+                name="file"
+                accept=".pdf,application/pdf"
                 className="form-input"
               />
             </label>

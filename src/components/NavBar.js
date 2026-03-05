@@ -68,10 +68,15 @@ const ICONS = {
   ),
 };
 
-function NavBar({ activeTab, onChangeTab, tabs }) {
+function NavBar({ activeTab, onChangeTab, tabs, isExpanded, onHoverStart, onHoverEnd }) {
   const { t } = useTranslation();
+  const navClassName = isExpanded ? 'app-nav app-nav-expanded' : 'app-nav';
   return (
-    <nav className="app-nav">
+    <nav
+      className={navClassName}
+      onMouseEnter={onHoverStart}
+      onMouseLeave={onHoverEnd}
+    >
       {Object.keys(tabs).map((key) => {
         const value = tabs[key];
         const labelKey = TAB_KEYS[value];
@@ -85,7 +90,7 @@ function NavBar({ activeTab, onChangeTab, tabs }) {
             onClick={() => onChangeTab(value)}
           >
             {icon}
-            {label}
+            <span className="app-nav-label">{label}</span>
           </button>
         );
       })}

@@ -100,17 +100,11 @@ function Media({ posts = [], loading, refreshPosts, onDeletePost, showToast, t: 
     }
   };
 
-  const handleDelete = async (postId, title) => {
+  const handleDelete = (postId, title) => {
     const ok = window.confirm(`Delete this post: "${title || ''}"?`);
     if (!ok) return;
-    if (onDeletePost) onDeletePost(postId);
-    try {
-      await api.deletePost(postId);
-      if (showToast) showToast({ message: tFn('toast.postDeleted'), type: 'success' });
-    } catch (err) {
-      console.error(err);
-      if (refreshPosts) refreshPosts();
-      if (showToast) showToast({ message: tFn('toast.deleteFailed'), type: 'error' });
+    if (onDeletePost) {
+      onDeletePost(postId);
     }
   };
 

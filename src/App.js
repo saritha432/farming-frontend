@@ -54,6 +54,7 @@ function App() {
     courses: null,
     knowledgeSessions: null,
   });
+  const [isNavExpanded, setIsNavExpanded] = useState(false);
 
   const addToast = useCallback(({ id, message, type }) => {
     setToasts((prev) => [...prev, { id: id || Date.now(), message, type: type || 'info' }]);
@@ -369,15 +370,43 @@ function App() {
   };
 
   const refreshPosts = () => {
-    api.getPosts(api.getClientId()).then((r) => setApiData((prev) => ({ ...prev, posts: r }))).catch(() => {});
+    api
+      .getPosts(api.getClientId())
+      .then((r) =>
+        setApiData((prev) => ({
+          ...prev,
+          posts: Array.isArray(r) ? r : prev.posts,
+        })),
+      )
+      .catch(() => {});
   };
 
-  const handleDeletePost = useCallback((postId) => {
-    setApiData((prev) => ({
-      ...prev,
-      posts: Array.isArray(prev.posts) ? prev.posts.filter((p) => p.id !== postId) : prev.posts,
-    }));
-  }, []);
+  const handleDeletePost = useCallback(
+    async (postId) => {
+      // Optimistically remove the post from local state
+      setApiData((prev) => ({
+        ...prev,
+        posts: Array.isArray(prev.posts) ? prev.posts.filter((p) => p.id !== postId) : prev.posts,
+      }));
+      try {
+        await api.deletePost(postId);
+        addToast({ id: Date.now(), message: t('toast.postDeleted'), type: 'success' });
+      } catch {
+        // If delete fails on the server, reload posts so the UI stays in sync
+        api
+          .getPosts(api.getClientId())
+          .then((r) =>
+            setApiData((prev) => ({
+              ...prev,
+              posts: Array.isArray(r) ? r : prev.posts,
+            })),
+          )
+          .catch(() => {});
+        addToast({ id: Date.now(), message: t('toast.deleteFailed'), type: 'error' });
+      }
+    },
+    [addToast, t],
+  );
 
   const clearCart = () => {
     setCart([]);
@@ -393,6 +422,14 @@ function App() {
       )}
       <header className="app-header">
         <div className="app-header-left">
+          <button
+            type="button"
+            className="app-header-menu-toggle"
+            aria-label="Show navigation labels"
+            onMouseEnter={() => setIsNavExpanded(true)}
+          >
+            ☰
+          </button>
           <h1 className="app-title">{t('app.title')}</h1>
           <p className="app-subtitle">{t('app.subtitle')}</p>
         </div>
@@ -484,6 +521,7 @@ function App() {
         activeTab={activeTab}
         onChangeTab={(tab) => {
           setActiveTab(tab);
+          setIsNavExpanded(false);
           if (typeof window !== 'undefined') {
             try {
               window.localStorage.setItem('agrovibes_active_tab', tab);
@@ -493,6 +531,9 @@ function App() {
           }
         }}
         tabs={TABS}
+        isExpanded={isNavExpanded}
+        onHoverStart={() => setIsNavExpanded(true)}
+        onHoverEnd={() => setIsNavExpanded(false)}
       />
 
       <main className="app-main">
@@ -564,10 +605,6 @@ function App() {
           </div>
         </div>
       </main>
-
-      <footer className="app-footer">
-        <p className="muted">{t('app.footer')}</p>
-      </footer>
 
       <ToastContainer toasts={toasts} removeToast={removeToast} />
     </div>

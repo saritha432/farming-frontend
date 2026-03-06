@@ -238,6 +238,11 @@ function App() {
     }
   };
 
+  const handleRequestEquipment = async (equipmentId, requestBody) => {
+    // Send a rent/sell request for a specific equipment item.
+    await api.postEquipmentRequest(equipmentId, requestBody);
+  };
+
   const handleAddGuide = async (item) => {
     try {
       let created;
@@ -569,7 +574,7 @@ function App() {
                 loading={loading.equipment}
                 onAddEquipment={handleAddEquipment}
                 showToast={addToast}
-                t={t}
+                onRequestEquipment={handleRequestEquipment}
               />
             )}
 

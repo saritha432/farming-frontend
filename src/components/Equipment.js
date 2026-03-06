@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import Modal from './Modal';
 
-function Equipment({ items, loading, onAddEquipment, showToast }) {
+function Equipment({ items, loading, onAddEquipment, showToast, onRequestEquipment }) {
   const { t } = useTranslation();
   const [showAddForm, setShowAddForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -57,39 +57,66 @@ function Equipment({ items, loading, onAddEquipment, showToast }) {
     setRequestItem(null);
   };
 
-  const handleSubmitRequest = (e) => {
+  const handleSubmitRequest = async (e) => {
     e.preventDefault();
     const form = e.target;
     const startDate = form.startDate.value;
     const endDate = form.endDate.value;
     const fullName = form.fullName.value.trim();
     const phone = form.phone.value.trim();
+    const notes = form.notes.value.trim();
 
     if (!fullName || !phone || !startDate || !endDate) return;
 
-    // For now we just show a confirmation toast; backend wiring can be added later.
-    if (typeof showToast === 'function') {
-      showToast(
-        t(
-          'equipment.requestSubmitted',
-          'Your request has been sent to the owner. They will contact you soon.',
-        ),
-        'success',
-      );
+    if (!requestItem || requestItem.id == null) {
+      if (typeof showToast === 'function') {
+        showToast({
+          message: t(
+            'equipment.requestError',
+            'Cannot send request for this equipment. Please try again later.',
+          ),
+          type: 'error',
+        });
+      }
+      return;
     }
 
-    // Example payload if you later want to send this to an API:
-    // const payload = {
-    //   itemId: requestItem?.id,
-    //   startDate,
-    //   endDate,
-    //   fullName,
-    //   phone,
-    //   notes: form.notes.value.trim(),
-    // };
+    const payload = {
+      startDate,
+      endDate,
+      fullName,
+      phone,
+      notes,
+    };
 
-    form.reset();
-    handleCloseRequest();
+    try {
+      if (typeof onRequestEquipment === 'function') {
+        await onRequestEquipment(requestItem.id, payload);
+      }
+
+      if (typeof showToast === 'function') {
+        showToast({
+          message: t(
+            'equipment.requestSubmitted',
+            'Your request has been sent to the owner. They will contact you soon.',
+          ),
+          type: 'success',
+        });
+      }
+
+      form.reset();
+      handleCloseRequest();
+    } catch (err) {
+      if (typeof showToast === 'function') {
+        showToast({
+          message: t(
+            'equipment.requestError',
+            'Could not send your request. Please try again.',
+          ),
+          type: 'error',
+        });
+      }
+    }
   };
 
   if (loading) {

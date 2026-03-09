@@ -36,7 +36,7 @@ function Profile({ posts = [], onEditProfile, onOpenLogin, onOpenSignup }) {
         setMyPosts(fallback);
       })
       .finally(() => setLoadingPosts(false));
-  }, [isAuthenticated, user?.id, user?.fullName, user?.username, posts]);
+  }, [isAuthenticated, user, posts]);
 
   const displayPosts = myPosts.length > 0 ? myPosts : (posts.filter((p) => p.farmer === user?.fullName || p.farmer === user?.username) || []);
 

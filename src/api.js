@@ -114,6 +114,17 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(body),
     }),
+  updateKnowledgeSession: (sessionId, body) =>
+    request(`/api/knowledge/sessions/${sessionId}`, {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    }),
+  deleteKnowledgeSession: (sessionId) =>
+    request(`/api/knowledge/sessions/${sessionId}`, {
+      method: 'DELETE',
+    }),
+  getKnowledgeSessionQuestions: (sessionId) =>
+    request(`/api/knowledge/sessions/${sessionId}/questions`),
   subscribeKnowledgeSession: (sessionId, clientId) =>
     request(`/api/knowledge/sessions/${sessionId}/subscribe`, {
       method: 'POST',

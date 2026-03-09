@@ -268,6 +268,7 @@ function App() {
             schedule: item.scheduleAt,
             host: '',
             status: 'upcoming',
+            guideId: created.id,
           });
           const refreshed = await api
             .getKnowledgeSessions(api.getClientId())
@@ -333,14 +334,18 @@ function App() {
     }
   };
 
-  const handleAskKnowledgeQuestion = async (sessionId, text) => {
+  const handleAskKnowledgeQuestion = async (sessionId, text, parentId) => {
     const trimmed = text.trim();
     if (!trimmed) return;
     try {
-      await api.postKnowledgeQuestion(sessionId, {
+      const body = {
         author: 'Farmer',
         text: trimmed,
-      });
+      };
+      if (parentId != null) {
+        body.parentId = parentId;
+      }
+      await api.postKnowledgeQuestion(sessionId, body);
       const refreshed = await api
         .getKnowledgeSessions(api.getClientId())
         .catch(() => null);
@@ -350,6 +355,31 @@ function App() {
     } catch {
       // ignore for now
     }
+  };
+
+  const refreshKnowledgeSessions = async () => {
+    const refreshed = await api.getKnowledgeSessions(api.getClientId()).catch(() => null);
+    if (Array.isArray(refreshed)) {
+      setApiData((prev) => ({ ...prev, knowledgeSessions: refreshed }));
+    }
+  };
+
+  const handleDeleteKnowledgeSession = async (sessionId) => {
+    try {
+      await api.deleteKnowledgeSession(sessionId);
+    } catch {
+      // ignore delete errors; we'll refresh list anyway
+    }
+    await refreshKnowledgeSessions();
+  };
+
+  const handleUpdateKnowledgeSession = async (sessionId, updates) => {
+    try {
+      await api.updateKnowledgeSession(sessionId, updates);
+    } catch {
+      // ignore errors; we'll refresh list anyway
+    }
+    await refreshKnowledgeSessions();
   };
 
   const handleAddProduct = async (item) => {
@@ -560,6 +590,8 @@ function App() {
                 sessions={data.knowledgeSessions}
                 onToggleSubscribe={handleToggleKnowledgeSubscribe}
                 onAskQuestion={handleAskKnowledgeQuestion}
+                onDeleteSession={handleDeleteKnowledgeSession}
+                onUpdateSession={handleUpdateKnowledgeSession}
               />
             )}
 

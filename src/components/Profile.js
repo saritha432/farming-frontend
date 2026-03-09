@@ -1,0 +1,186 @@
+import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useAuth } from '../context/AuthContext';
+import { api } from '../api';
+import Modal from './Modal';
+
+const BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+const mediaUrl = (path) => (path && path.startsWith('/') ? BASE + path : path);
+
+function Profile({ posts = [], onEditProfile, onOpenLogin, onOpenSignup }) {
+  const { t } = useTranslation();
+  const { user, isAuthenticated, refreshUser } = useAuth();
+  const [myPosts, setMyPosts] = useState([]);
+  const [loadingPosts, setLoadingPosts] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editBio, setEditBio] = useState('');
+  const [editFullName, setEditFullName] = useState('');
+  const [savingProfile, setSavingProfile] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    setEditBio(user.bio || '');
+    setEditFullName(user.fullName || user.username || '');
+  }, [user]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !user) return;
+    setLoadingPosts(true);
+    api
+      .getMyPosts()
+      .then((list) => setMyPosts(Array.isArray(list) ? list : []))
+      .catch(() => {
+        const fallback = (posts || []).filter(
+          (p) => p.userId === user.id || p.farmer === user.fullName || p.farmer === user.username
+        );
+        setMyPosts(fallback);
+      })
+      .finally(() => setLoadingPosts(false));
+  }, [isAuthenticated, user?.id, user?.fullName, user?.username, posts]);
+
+  const displayPosts = myPosts.length > 0 ? myPosts : (posts.filter((p) => p.farmer === user?.fullName || p.farmer === user?.username) || []);
+
+  const handleSaveProfile = async (e) => {
+    e.preventDefault();
+    if (!user) return;
+    setSavingProfile(true);
+    try {
+      await api.updateProfile({ fullName: editFullName.trim(), bio: editBio.trim() });
+      await refreshUser();
+      if (onEditProfile) onEditProfile();
+      setShowEditModal(false);
+    } catch {
+      // show toast in real app
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
+  if (!isAuthenticated || !user) {
+    return (
+      <section className="section profile-section">
+        <div className="profile-gate card empty-state">
+          <div className="empty-state-icon" aria-hidden>👤</div>
+          <h3>{t('profile.logInToView', 'Log in to see your profile')}</h3>
+          <p>{t('profile.logInToViewDesc', 'Sign in or create an account to view your profile and posts.')}</p>
+          <div className="profile-gate-actions">
+            {onOpenLogin && (
+              <button type="button" className="primary-btn" onClick={onOpenLogin}>
+                {t('auth.logIn', 'Log in')}
+              </button>
+            )}
+            {onOpenSignup && (
+              <button type="button" className="ghost-btn" onClick={onOpenSignup}>
+                {t('auth.signUp', 'Sign up')}
+              </button>
+            )}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section className="section profile-section">
+      <div className="profile-header card">
+        <div className="profile-avatar-wrap">
+          <div className="profile-avatar">
+            {user.avatar ? (
+              <img src={user.avatar} alt="" />
+            ) : (
+              <span className="profile-avatar-initial">{(user.fullName || user.username || 'U').charAt(0).toUpperCase()}</span>
+            )}
+          </div>
+        </div>
+        <div className="profile-info">
+          <h1 className="profile-username">{user.username || user.fullName}</h1>
+          {user.fullName && user.fullName !== user.username && (
+            <p className="profile-full-name">{user.fullName}</p>
+          )}
+          {user.bio && <p className="profile-bio">{user.bio}</p>}
+          <div className="profile-stats">
+            <span><strong>{displayPosts.length}</strong> {t('profile.posts', 'posts')}</span>
+            <span><strong>0</strong> {t('profile.followers', 'followers')}</span>
+            <span><strong>0</strong> {t('profile.following', 'following')}</span>
+          </div>
+          <div className="profile-actions">
+            <button type="button" className="primary-btn" onClick={() => setShowEditModal(true)}>
+              {t('profile.editProfile', 'Edit profile')}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="profile-posts-section">
+        <h2 className="profile-posts-title">{t('profile.posts', 'Posts')}</h2>
+        {loadingPosts ? (
+          <div className="profile-grid profile-grid-skeleton">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div key={i} className="profile-grid-item skeleton" />
+            ))}
+          </div>
+        ) : displayPosts.length === 0 ? (
+          <div className="profile-empty-posts card">
+            <div className="empty-state-icon">📷</div>
+            <p>{t('profile.noPostsYet', 'No posts yet')}</p>
+          </div>
+        ) : (
+          <div className="profile-grid">
+            {displayPosts.map((post) => {
+              const src = mediaUrl(post.mediaUrl || post.media || post.url || post.image);
+              return (
+                <div key={post.id} className="profile-grid-item">
+                  {src ? (
+                    post.type === 'Video' ? (
+                      <video src={src} muted />
+                    ) : (
+                      <img src={src} alt={post.title || ''} />
+                    )
+                  ) : (
+                    <div className="profile-grid-placeholder">{post.title || '📷'}</div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {showEditModal && (
+        <Modal title={t('profile.editProfile', 'Edit profile')} onClose={() => setShowEditModal(false)}>
+          <form onSubmit={handleSaveProfile} className="form">
+            <label className="form-label">
+              {t('auth.fullName', 'Full name')}
+              <input
+                type="text"
+                value={editFullName}
+                onChange={(e) => setEditFullName(e.target.value)}
+                className="form-input"
+              />
+            </label>
+            <label className="form-label">
+              {t('profile.bio', 'Bio')}
+              <textarea
+                rows={3}
+                value={editBio}
+                onChange={(e) => setEditBio(e.target.value)}
+                className="form-input"
+                placeholder={t('profile.bioPlaceholder', 'Tell others about your farm...')}
+              />
+            </label>
+            <div className="card-footer-row mt">
+              <button type="submit" className="primary-btn" disabled={savingProfile}>
+                {savingProfile ? t('common.saving', 'Saving…') : t('common.save', 'Save')}
+              </button>
+              <button type="button" className="ghost-btn" onClick={() => setShowEditModal(false)}>
+                {t('common.cancel', 'Cancel')}
+              </button>
+            </div>
+          </form>
+        </Modal>
+      )}
+    </section>
+  );
+}
+
+export default Profile;

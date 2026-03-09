@@ -1,6 +1,41 @@
 {
   "common": {
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "save": "Save",
+    "saving": "Saving…"
+  },
+  "auth": {
+    "logIn": "Log in",
+    "signUp": "Sign up",
+    "logOut": "Log out",
+    "email": "Email",
+    "emailPlaceholder": "you@example.com",
+    "password": "Password",
+    "username": "Username",
+    "usernamePlaceholder": "johndoe",
+    "fullName": "Full name",
+    "fullNamePlaceholder": "John Doe",
+    "noAccount": "Don't have an account?",
+    "haveAccount": "Already have an account?",
+    "emailAndPasswordRequired": "Email and password are required",
+    "allFieldsRequired": "All fields are required",
+    "passwordTooShort": "Password must be at least 6 characters",
+    "loginFailed": "Login failed. Please try again.",
+    "signupFailed": "Sign up failed. Please try again.",
+    "loggingIn": "Logging in…",
+    "signingUp": "Signing up…"
+  },
+  "profile": {
+    "myProfile": "Profile",
+    "editProfile": "Edit profile",
+    "bio": "Bio",
+    "bioPlaceholder": "Tell others about your farm...",
+    "posts": "posts",
+    "followers": "followers",
+    "following": "following",
+    "logInToView": "Log in to see your profile",
+    "logInToViewDesc": "Sign in or create an account to view your profile and posts.",
+    "noPostsYet": "No posts yet"
   },
   "toast": {
     "postCreated": "Post published!",
@@ -33,7 +68,8 @@
     "products": "Fertilizers & Seeds",
     "sales": "Direct Sales",
     "learning": "Learning Hub",
-    "community": "Community"
+    "community": "Community",
+    "profile": "Profile"
   },
   "media": {
     "title": "Media Sharing & Stories",

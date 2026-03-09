@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api } from './api';
 import './App.css';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import NavBar from './components/NavBar';
 import Media from './components/Media';
 import Knowledge from './components/Knowledge';
@@ -11,6 +12,9 @@ import Products from './components/Products';
 import Sales from './components/Sales';
 import Learning from './components/Learning';
 import Community from './components/Community';
+import Profile from './components/Profile';
+import LoginModal from './components/LoginModal';
+import SignupModal from './components/SignupModal';
 import { ToastContainer } from './components/Toast';
 
 const TABS = {
@@ -22,10 +26,16 @@ const TABS = {
   SALES: 'SALES',
   LEARNING: 'LEARNING',
   COMMUNITY: 'COMMUNITY',
+  PROFILE: 'PROFILE',
 };
 
-function App() {
+function AppContent() {
   const { t, i18n } = useTranslation();
+  const { user, login, signup, logout } = useAuth();
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showSignupModal, setShowSignupModal] = useState(false);
+  const [showAuthDropdown, setShowAuthDropdown] = useState(false);
+  const authDropdownRef = useRef(null);
   const [activeTab, setActiveTab] = useState(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -62,6 +72,18 @@ function App() {
   const removeToast = useCallback((id) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (authDropdownRef.current && !authDropdownRef.current.contains(e.target)) {
+        setShowAuthDropdown(false);
+      }
+    };
+    if (showAuthDropdown) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [showAuthDropdown]);
 
   useEffect(() => {
     let cancelled = false;
@@ -236,6 +258,11 @@ function App() {
       }));
       addToast({ id: Date.now(), message: t('toast.equipmentListed'), type: 'success' });
     }
+  };
+
+  const handleRequestEquipment = async (equipmentId, requestBody) => {
+    // Send a rent/sell request for a specific equipment item.
+    await api.postEquipmentRequest(equipmentId, requestBody);
   };
 
   const handleAddGuide = async (item) => {
@@ -499,6 +526,74 @@ function App() {
             </button>
             <button type="button" aria-label="Cart">❤️</button>
           </div>
+          <div className="app-header-auth">
+            {user ? (
+              <div className="auth-user-wrap" ref={authDropdownRef}>
+                <button
+                  type="button"
+                  className="auth-avatar-btn"
+                  onClick={() => setShowAuthDropdown((v) => !v)}
+                  aria-expanded={showAuthDropdown}
+                  aria-haspopup="true"
+                  aria-label={t('profile.myProfile', 'My profile')}
+                >
+                  <span className="auth-avatar">
+                    {user.avatar ? (
+                      <img src={user.avatar} alt="" />
+                    ) : (
+                      <span className="auth-avatar-initial">{(user.fullName || user.username || 'U').charAt(0).toUpperCase()}</span>
+                    )}
+                  </span>
+                </button>
+                {showAuthDropdown && (
+                  <div className="auth-dropdown" role="menu">
+                    <button
+                      type="button"
+                      className="auth-dropdown-item"
+                      onClick={() => {
+                        setActiveTab(TABS.PROFILE);
+                        if (typeof window !== 'undefined') {
+                          try {
+                            window.localStorage.setItem('agrovibes_active_tab', TABS.PROFILE);
+                          } catch {}
+                        }
+                        setShowAuthDropdown(false);
+                      }}
+                    >
+                      {t('profile.myProfile', 'Profile')}
+                    </button>
+                    <button
+                      type="button"
+                      className="auth-dropdown-item auth-dropdown-item-danger"
+                      onClick={() => {
+                        logout();
+                        setShowAuthDropdown(false);
+                      }}
+                    >
+                      {t('auth.logOut', 'Log out')}
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  className="ghost-btn app-header-login-btn"
+                  onClick={() => setShowLoginModal(true)}
+                >
+                  {t('auth.logIn', 'Log in')}
+                </button>
+                <button
+                  type="button"
+                  className="primary-btn app-header-signup-btn"
+                  onClick={() => setShowSignupModal(true)}
+                >
+                  {t('auth.signUp', 'Sign up')}
+                </button>
+              </>
+            )}
+          </div>
           <select
             className="lang-select"
             value={i18n.language && i18n.language.split('-')[0]}
@@ -601,7 +696,7 @@ function App() {
                 loading={loading.equipment}
                 onAddEquipment={handleAddEquipment}
                 showToast={addToast}
-                t={t}
+                onRequestEquipment={handleRequestEquipment}
               />
             )}
 
@@ -634,12 +729,49 @@ function App() {
             )}
 
             {activeTab === TABS.COMMUNITY && <Community />}
+
+            {activeTab === TABS.PROFILE && (
+              <Profile
+                posts={data.posts}
+                onOpenLogin={() => setShowLoginModal(true)}
+                onOpenSignup={() => setShowSignupModal(true)}
+              />
+            )}
           </div>
         </div>
       </main>
 
+      {showLoginModal && (
+        <LoginModal
+          onClose={() => setShowLoginModal(false)}
+          onSuccess={login}
+          onSwitchToSignup={() => {
+            setShowLoginModal(false);
+            setShowSignupModal(true);
+          }}
+        />
+      )}
+      {showSignupModal && (
+        <SignupModal
+          onClose={() => setShowSignupModal(false)}
+          onSuccess={signup}
+          onSwitchToLogin={() => {
+            setShowSignupModal(false);
+            setShowLoginModal(true);
+          }}
+        />
+      )}
+
       <ToastContainer toasts={toasts} removeToast={removeToast} />
     </div>
+  );
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }
 

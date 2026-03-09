@@ -2,9 +2,13 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import Modal from './Modal';
 
-function Equipment({ items, loading, onAddEquipment }) {
+function Equipment({ items, loading, onAddEquipment, showToast, onRequestEquipment }) {
   const { t } = useTranslation();
   const [showAddForm, setShowAddForm] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [modeFilter, setModeFilter] = useState('all');
+  const [showRequestModal, setShowRequestModal] = useState(false);
+  const [requestItem, setRequestItem] = useState(null);
 
   const handleSubmitEquipment = (e) => {
     e.preventDefault();
@@ -25,6 +29,94 @@ function Equipment({ items, loading, onAddEquipment }) {
     });
     form.reset();
     setShowAddForm(false);
+  };
+
+  const normalizedItems = Array.isArray(items) ? items : [];
+  const hasItems = normalizedItems.length > 0;
+
+  const filteredItems = normalizedItems.filter((item) => {
+    const modeValue = (item.modeKey || item.mode || '').toString().toLowerCase();
+    const matchesMode = modeFilter === 'all' ? true : modeValue === modeFilter;
+
+    const term = searchTerm.trim().toLowerCase();
+    const matchesSearch =
+      !term ||
+      (item.name && item.name.toLowerCase().includes(term)) ||
+      (item.location && item.location.toLowerCase().includes(term));
+
+    return matchesMode && matchesSearch;
+  });
+
+  const handleOpenRequest = (item) => {
+    setRequestItem(item);
+    setShowRequestModal(true);
+  };
+
+  const handleCloseRequest = () => {
+    setShowRequestModal(false);
+    setRequestItem(null);
+  };
+
+  const handleSubmitRequest = async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    const startDate = form.startDate.value;
+    const endDate = form.endDate.value;
+    const fullName = form.fullName.value.trim();
+    const phone = form.phone.value.trim();
+    const notes = form.notes.value.trim();
+
+    if (!fullName || !phone || !startDate || !endDate) return;
+
+    if (!requestItem || requestItem.id == null) {
+      if (typeof showToast === 'function') {
+        showToast({
+          message: t(
+            'equipment.requestError',
+            'Cannot send request for this equipment. Please try again later.',
+          ),
+          type: 'error',
+        });
+      }
+      return;
+    }
+
+    const payload = {
+      startDate,
+      endDate,
+      fullName,
+      phone,
+      notes,
+    };
+
+    try {
+      if (typeof onRequestEquipment === 'function') {
+        await onRequestEquipment(requestItem.id, payload);
+      }
+
+      if (typeof showToast === 'function') {
+        showToast({
+          message: t(
+            'equipment.requestSubmitted',
+            'Your request has been sent to the owner. They will contact you soon.',
+          ),
+          type: 'success',
+        });
+      }
+
+      form.reset();
+      handleCloseRequest();
+    } catch (err) {
+      if (typeof showToast === 'function') {
+        showToast({
+          message: t(
+            'equipment.requestError',
+            'Could not send your request. Please try again.',
+          ),
+          type: 'error',
+        });
+      }
+    }
   };
 
   if (loading) {
@@ -124,7 +216,7 @@ function Equipment({ items, loading, onAddEquipment }) {
           </form>
         </Modal>
       )}
-      {!loading && items.length === 0 && (
+      {!loading && !hasItems && (
         <div className="empty-state card">
           <div className="empty-state-icon" aria-hidden>🚜</div>
           <h3>{t('equipment.title')}</h3>
@@ -136,33 +228,189 @@ function Equipment({ items, loading, onAddEquipment }) {
           )}
         </div>
       )}
-      {items.length > 0 && (
-        <div className="grid">
-          {items.map((item) => (
-            <article key={item.id} className="card">
-              <h3>{item.name}</h3>
-              <p className="muted">
-                {item.location} • {item.mode}
+      {hasItems && (
+        <>
+          <div className="equipment-filters">
+            <div className="equipment-filters-left">
+              <input
+                type="search"
+                className="form-input equipment-search-input"
+                placeholder={t(
+                  'equipment.searchPlaceholder',
+                  'Search equipment by name or location',
+                )}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <div className="equipment-filters-right">
+              <select
+                className="form-input"
+                value={modeFilter}
+                onChange={(e) => setModeFilter(e.target.value)}
+              >
+                <option value="all">
+                  {t('equipment.filterModeAll', 'All modes')}
+                </option>
+                <option value="rent">
+                  {t('equipment.filterModeRent', 'Rent only')}
+                </option>
+                <option value="sell">
+                  {t('equipment.filterModeSell', 'Sell only')}
+                </option>
+              </select>
+            </div>
+          </div>
+          {filteredItems.length === 0 ? (
+            <div className="empty-state card">
+              <div className="empty-state-icon" aria-hidden>🔍</div>
+              <h3>
+                {t('equipment.noMatchesTitle', 'No equipment matches your filters')}
+              </h3>
+              <p>
+                {t(
+                  'equipment.noMatchesDescription',
+                  'Try changing or clearing your filters to see more equipment.',
+                )}
               </p>
-              <p className="highlight-text">{item.price}</p>
-              <p className="muted">
-                {item.includesOperator
-                  ? t('equipment.includesOperator')
-                  : t('equipment.operatorNotIncluded')}
-              </p>
-              <div className="card-footer-row">
-                <button type="button" className="primary-btn">
-                  {(item.modeKey || item.mode).toString().toLowerCase() === 'rent'
-                    ? t('equipment.requestRent')
-                    : t('equipment.requestSell')}
-                </button>
-                <button type="button" className="ghost-btn">
-                  {t('equipment.viewTutorial')}
-                </button>
+              <button
+                type="button"
+                className="small-btn mt-lg"
+                onClick={() => {
+                  setSearchTerm('');
+                  setModeFilter('all');
+                }}
+              >
+                {t('equipment.clearFilters', 'Clear filters')}
+              </button>
+            </div>
+          ) : (
+            <div className="grid equipment-grid">
+              {filteredItems.map((item) => {
+                const key = item.id || item.name;
+                const statusRaw = (item.status || 'available').toString().toLowerCase();
+                let statusLabel;
+                if (statusRaw === 'maintenance' || statusRaw === 'under_maintenance') {
+                  statusLabel = t('equipment.statusMaintenance', 'Under maintenance');
+                } else if (statusRaw === 'in_use' || statusRaw === 'in use') {
+                  statusLabel = t('equipment.statusInUse', 'In use');
+                } else {
+                  statusLabel = t('equipment.statusAvailable', 'Available');
+                }
+                const modeLabel = (item.modeKey || item.mode || '').toString();
+
+                return (
+                  <article key={key} className="card equipment-card">
+                    <div className="equipment-card-header">
+                      <h3>{item.name}</h3>
+                      <span
+                        className={`pill equipment-status-pill equipment-status-${statusRaw.replace(
+                          /\s+/g,
+                          '_',
+                        )}`}
+                      >
+                        {statusLabel}
+                      </span>
+                    </div>
+                    <p className="muted equipment-card-meta">
+                      <span>
+                        {item.category || t('equipment.defaultCategory', 'General')}
+                      </span>
+                      {item.location && <span>{item.location}</span>}
+                    </p>
+                    <p className="highlight-text">{item.price}</p>
+                    <p className="muted">
+                      {item.includesOperator
+                        ? t('equipment.includesOperator')
+                        : t('equipment.operatorNotIncluded')}
+                    </p>
+                    <div className="card-footer-row equipment-card-footer">
+                      <button
+                        type="button"
+                        className="primary-btn"
+                        onClick={() => handleOpenRequest(item)}
+                      >
+                        {modeLabel.toLowerCase() === 'rent'
+                          ? t('equipment.requestRent')
+                          : t('equipment.requestSell')}
+                      </button>
+                      <button type="button" className="ghost-btn">
+                        {t('equipment.viewTutorial')}
+                      </button>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </>
+      )}
+
+      {showRequestModal && requestItem && (
+        <Modal
+          title={t('equipment.requestModalTitle', 'Request this equipment')}
+          onClose={handleCloseRequest}
+        >
+          <div className="equipment-request-summary">
+            <p className="muted">
+              <strong>{requestItem.name}</strong>
+              {requestItem.price ? ` — ${requestItem.price}` : ''}
+            </p>
+          </div>
+          <form className="form" onSubmit={handleSubmitRequest}>
+            <label className="form-label">
+              {t('equipment.requestDates', 'When do you need it?')}
+              <div className="equipment-request-dates">
+                <input
+                  type="date"
+                  name="startDate"
+                  required
+                  className="form-input"
+                />
+                <input
+                  type="date"
+                  name="endDate"
+                  required
+                  className="form-input"
+                />
               </div>
-            </article>
-          ))}
-        </div>
+            </label>
+            <label className="form-label">
+              {t('equipment.requestFullName', 'Your name')}
+              <input
+                type="text"
+                name="fullName"
+                required
+                className="form-input"
+              />
+            </label>
+            <label className="form-label">
+              {t('equipment.requestPhone', 'Phone / WhatsApp')}
+              <input
+                type="tel"
+                name="phone"
+                required
+                className="form-input"
+              />
+            </label>
+            <label className="form-label">
+              {t('equipment.requestNotes', 'Notes for owner (optional)')}
+              <textarea
+                name="notes"
+                rows="3"
+                className="form-input"
+              />
+            </label>
+            <div className="card-footer-row mt">
+              <button type="submit" className="primary-btn">
+                {t('equipment.submitRequest', 'Send request')}
+              </button>
+              <button type="button" className="ghost-btn" onClick={handleCloseRequest}>
+                {t('common.cancel')}
+              </button>
+            </div>
+          </form>
+        </Modal>
       )}
     </section>
   );

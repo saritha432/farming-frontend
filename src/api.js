@@ -4,13 +4,40 @@
  */
 const BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
+const AUTH_TOKEN_KEY = 'agrovibes_token';
+
+function getToken() {
+  try {
+    return localStorage.getItem(AUTH_TOKEN_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function setToken(token) {
+  try {
+    if (token) localStorage.setItem(AUTH_TOKEN_KEY, token);
+    else localStorage.removeItem(AUTH_TOKEN_KEY);
+  } catch {
+    // ignore
+  }
+}
+
+function getAuthHeaders() {
+  const token = getToken();
+  if (!token) return {};
+  return { Authorization: `Bearer ${token}` };
+}
+
 async function request(path, options = {}) {
   const url = `${BASE}${path}`;
+  const headers = { 'Content-Type': 'application/json', ...getAuthHeaders(), ...options.headers };
   const res = await fetch(url, {
-    headers: { 'Content-Type': 'application/json', ...options.headers },
     ...options,
+    headers,
   });
   if (!res.ok) {
+    if (res.status === 401) setToken(null);
     const err = new Error(res.statusText || 'API error');
     err.status = res.status;
     try {
@@ -34,8 +61,31 @@ function getClientId() {
 
 export const api = {
   getClientId,
+  getToken,
+  setToken,
 
   getHealth: () => request('/api/health').catch(() => null),
+
+  // Auth (Instagram-style user management)
+  authLogin: (body) =>
+    request('/api/auth/login', { method: 'POST', body: JSON.stringify(body) }).then((data) => {
+      if (data.token) setToken(data.token);
+      return data;
+    }),
+  authSignup: (body) =>
+    request('/api/auth/signup', { method: 'POST', body: JSON.stringify(body) }).then((data) => {
+      if (data.token) setToken(data.token);
+      return data;
+    }),
+  authLogout: () => {
+    setToken(null);
+    return Promise.resolve();
+  },
+  getMe: () => request('/api/auth/me'),
+  getUserProfile: (userId) => request(`/api/users/${userId}`),
+  updateProfile: (body) =>
+    request('/api/users/me', { method: 'PATCH', body: JSON.stringify(body) }),
+  getMyPosts: () => request('/api/users/me/posts').catch(() => []),
 
   getPosts: (clientId) => {
     const q = clientId ? `?clientId=${encodeURIComponent(clientId)}` : '';
@@ -44,6 +94,7 @@ export const api = {
   createPost: (formData) => {
     return fetch(`${BASE}/api/posts`, {
       method: 'POST',
+      headers: getAuthHeaders(),
       body: formData,
     }).then((res) => {
       if (!res.ok) throw new Error(res.statusText || 'Upload failed');
@@ -85,12 +136,18 @@ export const api = {
 
   postJob: (body) => request('/api/jobs', { method: 'POST', body: JSON.stringify(body) }),
   postEquipment: (body) => request('/api/equipment', { method: 'POST', body: JSON.stringify(body) }),
+  postEquipmentRequest: (equipmentId, body) =>
+    request(`/api/equipment/${equipmentId}/requests`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
   postSalesItem: (body) => request('/api/sales', { method: 'POST', body: JSON.stringify(body) }),
   postGuide: (body) => {
     // Support both JSON body and FormData (for file uploads)
     if (body instanceof FormData) {
       return fetch(`${BASE}/api/guides`, {
         method: 'POST',
+        headers: getAuthHeaders(),
         body,
       }).then((res) => {
         if (!res.ok) throw new Error(res.statusText || 'Upload failed');

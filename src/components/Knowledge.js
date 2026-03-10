@@ -11,17 +11,42 @@ function resolveGuideFileUrl(fileUrl) {
   return `${API_BASE}${fileUrl}`;
 }
 
-function isSessionActive(session) {
-  if (!session) return false;
+function parseDurationMinutes(duration) {
+  if (!duration) return null;
+  const match = String(duration).match(/(\d+)/);
+  if (!match) return null;
+  const min = Number(match[1]);
+  return Number.isFinite(min) && min > 0 ? min : null;
+}
+
+function getSessionPhase(session, guides) {
+  if (!session) return 'upcoming';
   const status = String(session.status || '').toLowerCase();
-  if (status === 'completed' || status === 'cancelled') return false;
+  if (status === 'cancelled') return 'cancelled';
+
+  let liveMinutes = 20;
+  if (Array.isArray(guides) && session.guideId != null) {
+    const guide = guides.find((g) => g.id === session.guideId);
+    const parsed = guide && parseDurationMinutes(guide.duration);
+    if (parsed) liveMinutes = parsed;
+  }
+  const LIVE_WINDOW_MS = liveMinutes * 60 * 1000;
+
   if (session.schedule) {
     const ts = Date.parse(session.schedule);
-    if (!Number.isNaN(ts) && ts < Date.now()) {
-      return false;
+    if (!Number.isNaN(ts)) {
+      const now = Date.now();
+      if (now < ts) return 'upcoming';
+      if (now <= ts + LIVE_WINDOW_MS) return 'live';
+      return 'completed';
     }
   }
-  return true;
+  if (status === 'live' || status === 'completed') return status;
+  return 'upcoming';
+}
+
+function isSessionActive(session, guides) {
+  return getSessionPhase(session, guides) === 'live';
 }
 
 function formatSchedule(value) {
@@ -78,8 +103,8 @@ function Knowledge({
     description: '',
   });
 
-  // Only treat guides as "live" while their associated session is truly active (time in future).
-  const activeSessions = (sessions || []).filter(isSessionActive);
+  // Only treat guides as "live" while their associated session is truly active (based on schedule + duration).
+  const activeSessions = (sessions || []).filter((s) => isSessionActive(s, guides));
   const scheduledGuideIds = new Set(
     activeSessions.filter((s) => s.guideId != null).map((s) => s.guideId),
   );
@@ -307,94 +332,136 @@ function Knowledge({
             ))}
           </ul>
         </div>
-        <div className="card">
+          <div className="card">
           <h3>{t('knowledge.liveQA')}</h3>
           <p className="muted">{t('knowledge.liveQADesc')}</p>
           {activeSessions.length === 0 ? (
             <p className="muted">No live sessions scheduled yet.</p>
           ) : (
             <ul className="list">
-              {activeSessions.map((session) => (
-                <li key={session.id} className="list-item">
-                  <div>
-                    <div className="list-title">{session.title}</div>
-                    {session.schedule && (
-                      <div className="muted">{formatSchedule(session.schedule)}</div>
-                    )}
-                    {session.description && (
-                      <div className="muted">{session.description}</div>
-                    )}
-                    <div className="muted" style={{ marginTop: '0.25rem' }}>
-                      {session.questionCount} questions •{' '}
-                      {session.subscriberCount} subscribed
+              {activeSessions.map((session) => {
+                const phase = getSessionPhase(session, guides);
+                const guideForSession =
+                  session.guideId != null
+                    ? guides.find((g) => g.id === session.guideId)
+                    : null;
+                const liveMinutes = parseDurationMinutes(guideForSession?.duration) || 20;
+                return (
+                  <li key={session.id} className="list-item">
+                    <div>
+                      <div className="list-title">
+                        {session.title}
+                        {phase === 'live' && (
+                        <span
+                          style={{
+                            marginLeft: 8,
+                            fontSize: 12,
+                            padding: '2px 6px',
+                            borderRadius: 999,
+                            background: 'rgba(220,38,38,0.1)',
+                            color: '#b91c1c',
+                            textTransform: 'uppercase',
+                            letterSpacing: 0.5,
+                          }}
+                        >
+                          Live
+                        </span>
+                      )}
+                      </div>
+                      {session.schedule && (
+                        <div className="muted">
+                          {formatSchedule(session.schedule)}
+                          {phase === 'live' && ` • Live for ${liveMinutes} mins`}
+                        </div>
+                      )}
+                      {session.description && (
+                        <div className="muted">{session.description}</div>
+                      )}
+                      <div className="muted" style={{ marginTop: '0.25rem' }}>
+                        {session.questionCount} questions •{' '}
+                        {phase === 'live'
+                          ? `${session.subscriberCount} watching now`
+                          : `${session.subscriberCount} subscribed`}
+                      </div>
                     </div>
-                  </div>
-                  <div className="list-actions">
-                    {onToggleSubscribe && (
-                      <button
-                        type="button"
-                        className="small-btn"
-                        onClick={() => onToggleSubscribe(session.id)}
-                      >
-                        {session.isSubscribed
-                          ? 'Subscribed'
-                          : t('knowledge.notifyMe')}
-                      </button>
-                    )}
-                    {onAskQuestion && (
-                      <button
-                        type="button"
-                        className="small-btn"
-                        onClick={() => {
-                          setQuestionSession(session);
-                          setQuestionText('');
-                        }}
-                      >
-                        {t('knowledge.ask')}
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      className="small-btn"
-                      onClick={() => openSessionDetails(session)}
-                      style={{ marginLeft: 8 }}
-                    >
-                      View
-                    </button>
-                    {onUpdateSession && (
-                      <button
-                        type="button"
-                        className="small-btn"
-                        style={{ marginLeft: 8 }}
-                        onClick={() => {
-                          setEditingSession(session);
-                          setEditSessionValues({
-                            title: session.title || '',
-                            schedule: session.schedule || '',
-                            description: session.description || '',
-                          });
-                        }}
-                      >
-                        Edit
-                      </button>
-                    )}
-                    {onDeleteSession && (
-                      <button
-                        type="button"
-                        className="small-btn"
-                        style={{ marginLeft: 8 }}
-                        onClick={() => {
-                          if (window.confirm('Delete this live session?')) {
-                            onDeleteSession(session.id);
-                          }
-                        }}
-                      >
-                        Delete
-                      </button>
-                    )}
-                  </div>
-                </li>
-              ))}
+                    <div className="list-actions">
+                      {phase === 'live' && (
+                        <button
+                          type="button"
+                          className="small-btn"
+                          onClick={() => openSessionDetails(session)}
+                        >
+                          Watch live
+                        </button>
+                      )}
+                      {phase !== 'live' && onToggleSubscribe && (
+                        <button
+                          type="button"
+                          className="small-btn"
+                          onClick={() => onToggleSubscribe(session.id)}
+                        >
+                          {session.isSubscribed
+                            ? 'Subscribed'
+                            : t('knowledge.notifyMe')}
+                        </button>
+                      )}
+                      {onAskQuestion && (
+                        <button
+                          type="button"
+                          className="small-btn"
+                          onClick={() => {
+                            setQuestionSession(session);
+                            setQuestionText('');
+                          }}
+                        >
+                          {t('knowledge.ask')}
+                        </button>
+                      )}
+                      {phase !== 'live' && (
+                        <button
+                          type="button"
+                          className="small-btn"
+                          onClick={() => openSessionDetails(session)}
+                          style={{ marginLeft: 8 }}
+                        >
+                          View
+                        </button>
+                      )}
+                      {onUpdateSession && (
+                        <button
+                          type="button"
+                          className="small-btn"
+                          style={{ marginLeft: 8 }}
+                          onClick={() => {
+                            setEditingSession(session);
+                            setEditSessionValues({
+                              title: session.title || '',
+                              schedule: session.schedule || '',
+                              description: session.description || '',
+                            });
+                          }}
+                        >
+                          Edit
+                        </button>
+                      )}
+                      {onDeleteSession && (
+                        <button
+                          type="button"
+                          className="small-btn"
+                          style={{ marginLeft: 8 }}
+                          onClick={() => {
+                            if (window.confirm('Delete this live session?')) {
+                              onDeleteSession(session.id);
+                            }
+                          }}
+                        >
+                          Delete
+                        </button>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>
@@ -578,8 +645,35 @@ function Knowledge({
         >
           <p className="muted">
             {formatSchedule(viewSession.schedule) || 'No schedule set'}{' '}
-            {viewSession.status && `• ${viewSession.status}`}
+            {(() => {
+              const phase = getSessionPhase(viewSession, guides);
+              if (phase === 'live') {
+                const guide = guides.find((g) => g.id === viewSession.guideId);
+                const mins = parseDurationMinutes(guide?.duration) || 20;
+                return `• Live now (${mins} mins)`;
+              }
+              if (phase === 'completed') return '• Completed';
+              if (phase === 'upcoming') return '• Upcoming';
+              if (phase === 'cancelled') return '• Cancelled';
+              return null;
+            })()}
           </p>
+          {viewSession.guideId != null && (
+            <div style={{ marginBottom: '0.75rem' }}>
+              <button
+                type="button"
+                className="small-btn"
+                onClick={() => {
+                  const guide = guides.find((g) => g.id === viewSession.guideId);
+                  if (guide) {
+                    setOpenGuide(guide);
+                  }
+                }}
+              >
+                Open guide
+              </button>
+            </div>
+          )}
           {viewSession.description && (
             <p style={{ marginTop: '0.5rem' }}>{viewSession.description}</p>
           )}

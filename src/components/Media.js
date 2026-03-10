@@ -1,14 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../api';
+import { useAuth } from '../context/AuthContext';
 import Modal from './Modal';
 
 const BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
-function Media({ posts = [], loading, refreshPosts, onDeletePost, showToast, t: tProp }) {
+function Media({ posts = [], loading, refreshPosts, onDeletePost, showToast, t: tProp, openAddPost, onAddPostClose }) {
   const { t } = useTranslation();
   const tFn = tProp || t;
   const [showAddForm, setShowAddForm] = useState(false);
+  const { user } = useAuth();
+
+  useEffect(() => {
+    if (openAddPost) setShowAddForm(true);
+  }, [openAddPost]);
   const [uploading, setUploading] = useState(false);
   const [titleError, setTitleError] = useState('');
   const [expandedComments, setExpandedComments] = useState({});
@@ -47,6 +53,7 @@ function Media({ posts = [], loading, refreshPosts, onDeletePost, showToast, t: 
       await api.createPost(formData);
       form.reset();
       setShowAddForm(false);
+      onAddPostClose?.();
       if (showToast) showToast({ message: tFn('toast.postCreated'), type: 'success' });
       if (refreshPosts) refreshPosts();
     } catch (err) {
@@ -85,7 +92,9 @@ function Media({ posts = [], loading, refreshPosts, onDeletePost, showToast, t: 
   const handleSubmitComment = async (postId) => {
     const text = (commentText[postId] || '').trim();
     if (!text) return;
-    const author = 'Anonymous';
+    const author =
+      (user && (user.username || user.fullName)) ||
+      'Anonymous';
     setPostingComment((prev) => ({ ...prev, [postId]: true }));
     try {
       await api.addComment(postId, author, text);
@@ -116,13 +125,6 @@ function Media({ posts = [], loading, refreshPosts, onDeletePost, showToast, t: 
             <h2>{t('media.title')}</h2>
             <p className="muted">{t('media.description')}</p>
           </div>
-          {refreshPosts && (
-            <div className="section-header-actions">
-              <button type="button" className="primary-btn">
-                {t('media.addPost')}
-              </button>
-            </div>
-          )}
         </header>
         <div className="grid feed-grid">
           {[1, 2, 3].map((i) => (
@@ -140,18 +142,6 @@ function Media({ posts = [], loading, refreshPosts, onDeletePost, showToast, t: 
           <h2>{t('media.title')}</h2>
           <p className="muted">{t('media.description')}</p>
         </div>
-        {refreshPosts && (
-          <div className="section-header-actions">
-            <button
-              type="button"
-              className="primary-btn"
-              onClick={() => setShowAddForm((v) => !v)}
-              aria-expanded={showAddForm}
-            >
-              {t('media.addPost')}
-            </button>
-          </div>
-        )}
       </header>
 
       {showAddForm && (
@@ -160,6 +150,7 @@ function Media({ posts = [], loading, refreshPosts, onDeletePost, showToast, t: 
           onClose={() => {
             setShowAddForm(false);
             setTitleError('');
+            onAddPostClose?.();
           }}
         >
           <form onSubmit={handleSubmitPost} className="form">
@@ -217,6 +208,7 @@ function Media({ posts = [], loading, refreshPosts, onDeletePost, showToast, t: 
                 onClick={() => {
                   setShowAddForm(false);
                   setTitleError('');
+                  onAddPostClose?.();
                 }}
               >
                 {t('common.cancel')}
@@ -231,11 +223,6 @@ function Media({ posts = [], loading, refreshPosts, onDeletePost, showToast, t: 
           <div className="empty-state-icon" aria-hidden>📷</div>
           <h3>{t('media.title')}</h3>
           <p>No posts yet. Add the first one to get started.</p>
-          {refreshPosts && (
-            <button type="button" className="primary-btn mt-lg" onClick={() => setShowAddForm(true)}>
-              {t('media.addPost')}
-            </button>
-          )}
         </div>
       )}
 
@@ -328,12 +315,36 @@ function Media({ posts = [], loading, refreshPosts, onDeletePost, showToast, t: 
                         <div className="ig-comments-loading">Loading comments…</div>
                       )}
                       <ul className="ig-comments-list">
-                        {comments.map((c) => (
-                          <li key={c.id}>
-                            <span className="ig-comment-author">{c.author}</span>
-                            {c.text}
-                          </li>
-                        ))}
+                        {comments.map((c) => {
+                          const canDelete =
+                            user &&
+                            c.author &&
+                            c.author === (user.username || user.fullName);
+                          return (
+                            <li key={c.id}>
+                              <span className="ig-comment-author">{c.author}</span>
+                              <span>{c.text}</span>
+                              {canDelete && (
+                                <button
+                                  type="button"
+                                  className="small-btn ig-comment-delete-btn"
+                                  onClick={async () => {
+                                    try {
+                                      await api.deleteComment(post.id, c.id);
+                                      const updated = await api.getComments(post.id);
+                                      setCommentsCache((prev) => ({ ...prev, [post.id]: updated }));
+                                      if (refreshPosts) refreshPosts();
+                                    } catch (err) {
+                                      console.error(err);
+                                    }
+                                  }}
+                                >
+                                  ×
+                                </button>
+                              )}
+                            </li>
+                          );
+                        })}
                       </ul>
                     </div>
                   )}

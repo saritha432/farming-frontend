@@ -112,6 +112,10 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ author, text }),
     }),
+  deleteComment: (postId, commentId) =>
+    request(`/api/posts/${postId}/comments/${commentId}`, {
+      method: 'DELETE',
+    }),
   followPost: (postId) =>
     request(`/api/posts/${postId}/follow`, {
       method: 'POST',
@@ -191,6 +195,19 @@ export const api = {
     request(`/api/knowledge/sessions/${sessionId}/questions`, {
       method: 'POST',
       body: JSON.stringify(body),
+    }),
+  // Users search & follow
+  searchUsers: (q, clientId) => {
+    const params = [];
+    if (q) params.push(`q=${encodeURIComponent(q)}`);
+    if (clientId) params.push(`clientId=${encodeURIComponent(clientId)}`);
+    const qs = params.length ? `?${params.join('&')}` : '';
+    return request(`/api/users${qs}`);
+  },
+  followUser: (userId) =>
+    request(`/api/users/${userId}/follow`, {
+      method: 'POST',
+      body: JSON.stringify({ clientId: getClientId() }),
     }),
 };
 

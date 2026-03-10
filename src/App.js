@@ -15,6 +15,7 @@ import Community from './components/Community';
 import Profile from './components/Profile';
 import LoginModal from './components/LoginModal';
 import SignupModal from './components/SignupModal';
+import AuthGate from './components/AuthGate';
 import { ToastContainer } from './components/Toast';
 
 const TABS = {
@@ -31,7 +32,7 @@ const TABS = {
 
 function AppContent() {
   const { t, i18n } = useTranslation();
-  const { user, login, signup, logout } = useAuth();
+  const { user, loading: authLoading, login, signup, logout } = useAuth();
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showSignupModal, setShowSignupModal] = useState(false);
   const [showAuthDropdown, setShowAuthDropdown] = useState(false);
@@ -65,6 +66,8 @@ function AppContent() {
     knowledgeSessions: null,
   });
   const [isNavExpanded, setIsNavExpanded] = useState(false);
+  const [showAddPostModal, setShowAddPostModal] = useState(false);
+  const prevUserRef = useRef(null);
 
   const addToast = useCallback(({ id, message, type }) => {
     setToasts((prev) => [...prev, { id: id || Date.now(), message, type: type || 'info' }]);
@@ -72,6 +75,21 @@ function AppContent() {
   const removeToast = useCallback((id) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
+
+  // After login/signup, go directly to Media Feed
+  useEffect(() => {
+    if (user && !prevUserRef.current) {
+      setActiveTab(TABS.FEED);
+      if (typeof window !== 'undefined') {
+        try {
+          window.localStorage.setItem('agrovibes_active_tab', TABS.FEED);
+        } catch {
+          // ignore
+        }
+      }
+    }
+    prevUserRef.current = user;
+  }, [user]);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -470,6 +488,48 @@ function AppContent() {
     setShowCartDropdown(false);
   };
 
+  // Auth gate: show only signup/login for new visitors (Instagram/FB style)
+  if (authLoading) {
+    return (
+      <div className="app-root auth-gate-loading">
+        <div className="auth-gate-loading-spinner" aria-hidden />
+        <p className="auth-gate-loading-text">{t('authGate.loading', 'Loading…')}</p>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="app-root">
+        <AuthGate
+          onLogin={() => setShowLoginModal(true)}
+          onSignup={() => setShowSignupModal(true)}
+        />
+        {showLoginModal && (
+          <LoginModal
+            onClose={() => setShowLoginModal(false)}
+            onSuccess={login}
+            onSwitchToSignup={() => {
+              setShowLoginModal(false);
+              setShowSignupModal(true);
+            }}
+          />
+        )}
+        {showSignupModal && (
+          <SignupModal
+            onClose={() => setShowSignupModal(false)}
+            onSuccess={signup}
+            onSwitchToLogin={() => {
+              setShowSignupModal(false);
+              setShowLoginModal(true);
+            }}
+          />
+        )}
+        <ToastContainer toasts={toasts} removeToast={removeToast} />
+      </div>
+    );
+  }
+
   return (
     <div className="app-root">
       {!apiOnline && (
@@ -510,12 +570,31 @@ function AppContent() {
             </button>
             <button
               type="button"
-              aria-label="Explore"
+              className="app-header-add-post-btn"
+              aria-label={t('media.addPost', 'Add post')}
               onClick={() => {
-                setActiveTab(TABS.KNOWLEDGE);
+                setActiveTab(TABS.FEED);
+                setShowAddPostModal(true);
                 if (typeof window !== 'undefined') {
                   try {
-                    window.localStorage.setItem('agrovibes_active_tab', TABS.KNOWLEDGE);
+                    window.localStorage.setItem('agrovibes_active_tab', TABS.FEED);
+                  } catch {
+                    // ignore
+                  }
+                }
+              }}
+              title={t('media.addPost', 'Add post')}
+            >
+              +
+            </button>
+            <button
+              type="button"
+              aria-label="Search community"
+              onClick={() => {
+                setActiveTab(TABS.COMMUNITY);
+                if (typeof window !== 'undefined') {
+                  try {
+                    window.localStorage.setItem('agrovibes_active_tab', TABS.COMMUNITY);
                   } catch {
                     // ignore
                   }
@@ -672,6 +751,8 @@ function AppContent() {
                 onDeletePost={handleDeletePost}
                 showToast={addToast}
                 t={t}
+                openAddPost={showAddPostModal}
+                onAddPostClose={() => setShowAddPostModal(false)}
               />
             )}
 

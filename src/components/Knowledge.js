@@ -92,6 +92,7 @@ function Knowledge({
   const [viewQuestions, setViewQuestions] = useState([]);
   const [viewQuestionsLoading, setViewQuestionsLoading] = useState(false);
   const [viewQuestionsError, setViewQuestionsError] = useState('');
+  const [liveQuestionText, setLiveQuestionText] = useState('');
 
   const [replyTo, setReplyTo] = useState(null);
   const [replyText, setReplyText] = useState('');
@@ -103,8 +104,20 @@ function Knowledge({
     description: '',
   });
 
+  const guideForViewSession =
+    viewSession && viewSession.guideId != null
+      ? guides.find((g) => g.id === viewSession.guideId)
+      : null;
+
   // Only treat guides as "live" while their associated session is truly active (based on schedule + duration).
-  const activeSessions = (sessions || []).filter((s) => isSessionActive(s, guides));
+  // Also de-duplicate by session id in case the backend returns duplicates.
+  const activeSessionsMap = new Map();
+  (sessions || []).forEach((s) => {
+    if (isSessionActive(s, guides)) {
+      activeSessionsMap.set(s.id, s);
+    }
+  });
+  const activeSessions = Array.from(activeSessionsMap.values());
   const scheduledGuideIds = new Set(
     activeSessions.filter((s) => s.guideId != null).map((s) => s.guideId),
   );
@@ -640,6 +653,7 @@ function Knowledge({
             setViewQuestionsError('');
             setReplyTo(null);
             setReplyText('');
+            setLiveQuestionText('');
           }}
           labelledById="knowledge-session-details-modal-title"
         >
@@ -648,8 +662,7 @@ function Knowledge({
             {(() => {
               const phase = getSessionPhase(viewSession, guides);
               if (phase === 'live') {
-                const guide = guides.find((g) => g.id === viewSession.guideId);
-                const mins = parseDurationMinutes(guide?.duration) || 20;
+                const mins = parseDurationMinutes(guideForViewSession?.duration) || 20;
                 return `• Live now (${mins} mins)`;
               }
               if (phase === 'completed') return '• Completed';
@@ -658,20 +671,32 @@ function Knowledge({
               return null;
             })()}
           </p>
-          {viewSession.guideId != null && (
-            <div style={{ marginBottom: '0.75rem' }}>
-              <button
-                type="button"
+          {guideForViewSession && guideForViewSession.fileUrl && (
+            <div style={{ marginBottom: '1rem' }}>
+              <div style={{ marginBottom: '0.5rem', fontWeight: 500 }}>Guide</div>
+              <a
+                href={resolveGuideFileUrl(guideForViewSession.fileUrl)}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="small-btn"
-                onClick={() => {
-                  const guide = guides.find((g) => g.id === viewSession.guideId);
-                  if (guide) {
-                    setOpenGuide(guide);
-                  }
+                style={{ textDecoration: 'none', marginBottom: '0.5rem', display: 'inline-block' }}
+              >
+                Open in new tab
+              </a>
+              <div
+                style={{
+                  marginTop: '0.5rem',
+                  borderRadius: 8,
+                  overflow: 'hidden',
+                  border: '1px solid rgba(0,0,0,0.08)',
                 }}
               >
-                Open guide
-              </button>
+                <iframe
+                  title={`${guideForViewSession.title} file`}
+                  src={resolveGuideFileUrl(guideForViewSession.fileUrl)}
+                  style={{ width: '100%', height: 260, border: 'none', background: '#fff' }}
+                />
+              </div>
             </div>
           )}
           {viewSession.description && (
@@ -683,6 +708,40 @@ function Knowledge({
             {viewQuestionsError && <p className="muted">{viewQuestionsError}</p>}
             {!viewQuestionsLoading && !viewQuestionsError && viewQuestions.length === 0 && (
               <p className="muted">No questions yet.</p>
+            )}
+            {onAskQuestion && (
+              <form
+                className="form"
+                style={{ marginTop: '0.75rem', marginBottom: '0.75rem' }}
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const text = liveQuestionText.trim();
+                  if (!text) return;
+                  onAskQuestion(viewSession.id, text);
+                  setLiveQuestionText('');
+                  // refresh local questions list
+                  openSessionDetails(viewSession);
+                }}
+              >
+                <label className="form-label">
+                  <span className="muted">Ask a question while watching</span>
+                  <textarea
+                    className="form-input"
+                    rows="2"
+                    value={liveQuestionText}
+                    onChange={(e) => setLiveQuestionText(e.target.value)}
+                  />
+                </label>
+                <div className="card-footer-row mt">
+                  <button
+                    type="submit"
+                    className="primary-btn"
+                    disabled={!liveQuestionText.trim()}
+                  >
+                    Send question
+                  </button>
+                </div>
+              </form>
             )}
             {!viewQuestionsLoading && viewQuestions.length > 0 && (
               <ul className="list">

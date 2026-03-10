@@ -28,7 +28,16 @@ function Profile({ posts = [], onEditProfile, onOpenLogin, onOpenSignup }) {
     setLoadingPosts(true);
     api
       .getMyPosts()
-      .then((list) => setMyPosts(Array.isArray(list) ? list : []))
+      .then((list) => {
+        const arr = Array.isArray(list) ? list : [];
+        const mine = arr.filter(
+          (p) =>
+            p.userId === user.id ||
+            p.farmer === user.fullName ||
+            p.farmer === user.username,
+        );
+        setMyPosts(mine);
+      })
       .catch(() => {
         const fallback = (posts || []).filter(
           (p) => p.userId === user.id || p.farmer === user.fullName || p.farmer === user.username

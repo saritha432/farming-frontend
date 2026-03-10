@@ -34,7 +34,10 @@ function Media({ posts = [], loading, refreshPosts, onDeletePost, showToast, t: 
       return;
     }
     setTitleError('');
-    const farmer = form.farmer?.value?.trim() || 'My Farm';
+    const farmer =
+      (user && (user.fullName || user.username)) ||
+      form.farmer?.value?.trim() ||
+      'My Farm';
     const location = form.location?.value?.trim() || '';
     const type = form.type?.value || 'Photo';
     const description = form.description?.value?.trim() || '';

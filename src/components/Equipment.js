@@ -141,6 +141,11 @@ function Equipment({ items, loading, onAddEquipment, showToast, onRequestEquipme
     );
   }
 
+  const requestMode =
+    ((requestItem && (requestItem.modeKey || requestItem.mode || '')) || '')
+      .toString()
+      .toLowerCase();
+
   return (
     <section className="section">
       <header className="section-header">
@@ -298,6 +303,7 @@ function Equipment({ items, loading, onAddEquipment, showToast, onRequestEquipme
                   statusLabel = t('equipment.statusAvailable', 'Available');
                 }
                 const modeLabel = (item.modeKey || item.mode || '').toString();
+                const mode = modeLabel.toLowerCase();
 
                 return (
                   <article key={key} className="card equipment-card">
@@ -318,6 +324,13 @@ function Equipment({ items, loading, onAddEquipment, showToast, onRequestEquipme
                       </span>
                       {item.location && <span>{item.location}</span>}
                     </p>
+                    <p className="equipment-card-mode">
+                      <span className={`pill equipment-mode-pill equipment-mode-${mode || 'rent'}`}>
+                        {mode === 'sell'
+                          ? t('equipment.modeSellLabel', 'Available for sale')
+                          : t('equipment.modeRentLabel', 'Available for rent')}
+                      </span>
+                    </p>
                     <p className="highlight-text">{item.price}</p>
                     <p className="muted">
                       {item.includesOperator
@@ -330,7 +343,7 @@ function Equipment({ items, loading, onAddEquipment, showToast, onRequestEquipme
                         className="primary-btn"
                         onClick={() => handleOpenRequest(item)}
                       >
-                        {modeLabel.toLowerCase() === 'rent'
+                        {mode === 'rent'
                           ? t('equipment.requestRent')
                           : t('equipment.requestSell')}
                       </button>
@@ -348,13 +361,31 @@ function Equipment({ items, loading, onAddEquipment, showToast, onRequestEquipme
 
       {showRequestModal && requestItem && (
         <Modal
-          title={t('equipment.requestModalTitle', 'Request this equipment')}
+          title={
+            requestMode === 'rent'
+              ? t('equipment.requestModalTitleRent', 'Request to rent this equipment')
+              : t('equipment.requestModalTitleSell', 'Request to buy this equipment')
+          }
           onClose={handleCloseRequest}
         >
           <div className="equipment-request-summary">
             <p className="muted">
               <strong>{requestItem.name}</strong>
               {requestItem.price ? ` — ${requestItem.price}` : ''}
+            </p>
+            <p className="equipment-request-pill-row">
+              <span
+                className={`pill equipment-mode-pill equipment-mode-${requestMode || 'rent'}`}
+              >
+                {requestMode === 'sell'
+                  ? t('equipment.modeSellShort', 'Buy')
+                  : t('equipment.modeRentShort', 'Rent')}
+              </span>
+              {requestItem.location && (
+                <span className="muted equipment-request-location">
+                  {requestItem.location}
+                </span>
+              )}
             </p>
           </div>
           <form className="form" onSubmit={handleSubmitRequest}>

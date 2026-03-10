@@ -25,6 +25,10 @@
     "loggingIn": "Logging in…",
     "signingUp": "Signing up…"
   },
+  "authGate": {
+    "tagline": "Farming community, marketplace, and learning — in one place.",
+    "loading": "Loading…"
+  },
   "profile": {
     "myProfile": "Profile",
     "editProfile": "Edit profile",
@@ -197,18 +201,19 @@
     "continueCourse": "Continue course"
   },
   "community": {
-    "title": "Community & Future Features",
-    "description": "A home for farmer influencers, success stories, and upcoming smart-farming integrations.",
-    "farmerInfluencers": "Farmer Influencers",
-    "influencersDesc": "In the full platform, creators would host channels, live sessions, and sponsored demos for brands.",
+    "title": "Community",
+    "description": "Search for other AgroVibes users and follow them to keep track of their posts.",
     "follow": "Follow",
-    "futureOpportunities": "Future Opportunities (Concept)",
-    "aiCrop": "AI Crop Diagnosis — farmers upload plant images to detect diseases and get treatment suggestions.",
-    "droneIot": "Drone & IoT Integration — monitor fields, automate spraying, and track microclimate data.",
-    "blockchain": "Blockchain Traceability — ensure farm-to-fork transparency for premium buyers.",
-    "government": "Government Integrations — surface schemes, subsidies, and support programs matched to each farmer."
+    "following": "Following",
+    "searchUsers": "Search users",
+    "searchLabel": "Search by name or email",
+    "searchPlaceholder": "e.g. johndoe",
+    "searching": "Searching…",
+    "searchButton": "Search",
+    "resultsTitle": "People"
   },
   "language": {
+    "label": "Language",
     "en": "English",
     "te": "తెలుగు",
     "hi": "हिंदी"

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../api';
 
-function Community() {
+function Community({ onViewUser }) {
   const { t } = useTranslation();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
@@ -81,15 +81,26 @@ function Community() {
                     {u.email}
                   </div>
                 </div>
-                <button
-                  type="button"
-                  className="small-btn"
-                  onClick={() => toggleFollow(u.id)}
-                >
-                  {u.isFollowing
-                    ? t('community.following', 'Following')
-                    : t('community.follow', 'Follow')}
-                </button>
+                <div className="card-footer-row">
+                  <button
+                    type="button"
+                    className="small-btn"
+                    onClick={() => toggleFollow(u.id)}
+                  >
+                    {u.isFollowing
+                      ? t('community.following', 'Following')
+                      : t('community.follow', 'Follow')}
+                  </button>
+                  {onViewUser && (
+                    <button
+                      type="button"
+                      className="small-btn"
+                      onClick={() => onViewUser(u)}
+                    >
+                      {t('community.viewProfile', 'View posts')}
+                    </button>
+                  )}
+                </div>
               </li>
             ))}
           </ul>

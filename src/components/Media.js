@@ -22,6 +22,7 @@ function Media({ posts = [], loading, refreshPosts, onDeletePost, showToast, t: 
   const [commentText, setCommentText] = useState({});
   const [commentsCache, setCommentsCache] = useState({});
   const [postingComment, setPostingComment] = useState({});
+  const [commentLikes, setCommentLikes] = useState({});
 
   const mediaUrl = (path) => (path && path.startsWith('/') ? BASE + path : path);
 
@@ -95,6 +96,11 @@ function Media({ posts = [], loading, refreshPosts, onDeletePost, showToast, t: 
   const handleSubmitComment = async (postId) => {
     const text = (commentText[postId] || '').trim();
     if (!text) return;
+    if (!user) {
+      // Non-registered / logged-out user: prompt auth instead of commenting
+      alert(tFn('media.loginToComment', 'Please log in or sign up to comment.'));
+      return;
+    }
     const author =
       (user && (user.username || user.fullName)) ||
       'Anonymous';
@@ -319,32 +325,61 @@ function Media({ posts = [], loading, refreshPosts, onDeletePost, showToast, t: 
                       )}
                       <ul className="ig-comments-list">
                         {comments.map((c) => {
+                          const liked = !!commentLikes[c.id];
                           const canDelete =
                             user &&
                             c.author &&
                             c.author === (user.username || user.fullName);
                           return (
                             <li key={c.id}>
-                              <span className="ig-comment-author">{c.author}</span>
-                              <span>{c.text}</span>
-                              {canDelete && (
+                              <div>
+                                <span className="ig-comment-author">{c.author}</span>
+                                <span>{c.text}</span>
+                              </div>
+                              <div className="ig-comment-actions">
                                 <button
                                   type="button"
-                                  className="small-btn ig-comment-delete-btn"
-                                  onClick={async () => {
-                                    try {
-                                      await api.deleteComment(post.id, c.id);
-                                      const updated = await api.getComments(post.id);
-                                      setCommentsCache((prev) => ({ ...prev, [post.id]: updated }));
-                                      if (refreshPosts) refreshPosts();
-                                    } catch (err) {
-                                      console.error(err);
-                                    }
-                                  }}
+                                  className={liked ? 'ig-comment-like-link liked' : 'ig-comment-like-link'}
+                                  onClick={() =>
+                                    setCommentLikes((prev) => ({
+                                      ...prev,
+                                      [c.id]: !prev[c.id],
+                                    }))
+                                  }
                                 >
-                                  ×
+                                  {liked ? 'Liked' : 'Like'}
                                 </button>
-                              )}
+                                <button
+                                  type="button"
+                                  className="ig-comment-reply-link"
+                                  onClick={() =>
+                                    setCommentText((prev) => ({
+                                      ...prev,
+                                      [post.id]: `@${c.author || ''} `,
+                                    }))
+                                  }
+                                >
+                                  {t('media.reply', 'Reply')}
+                                </button>
+                                {canDelete && (
+                                  <button
+                                    type="button"
+                                    className="ig-comment-delete-link"
+                                    onClick={async () => {
+                                      try {
+                                        await api.deleteComment(post.id, c.id);
+                                        const updated = await api.getComments(post.id);
+                                        setCommentsCache((prev) => ({ ...prev, [post.id]: updated }));
+                                        if (refreshPosts) refreshPosts();
+                                      } catch (err) {
+                                        console.error(err);
+                                      }
+                                    }}
+                                  >
+                                    Delete
+                                  </button>
+                                )}
+                              </div>
                             </li>
                           );
                         })}

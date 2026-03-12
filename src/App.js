@@ -68,6 +68,8 @@ function AppContent() {
   const [isNavExpanded, setIsNavExpanded] = useState(false);
   const [showAddPostModal, setShowAddPostModal] = useState(false);
   const prevUserRef = useRef(null);
+  const [seenInteractions, setSeenInteractions] = useState(0);
+  const [feedUserFilter, setFeedUserFilter] = useState(null);
 
   const addToast = useCallback(({ id, message, type }) => {
     setToasts((prev) => [...prev, { id: id || Date.now(), message, type: type || 'info' }]);
@@ -220,6 +222,75 @@ function AppContent() {
     knowledge: apiData.guides === null,
     equipment: apiData.equipment === null,
     sales: apiData.salesItems === null,
+  };
+
+  // Simple notification count: likes + comments on my posts
+  const myInteractionTotal = Array.isArray(data.posts) && user
+    ? data.posts
+        .filter(
+          (p) =>
+            p.farmer === user.fullName ||
+            p.farmer === user.username,
+        )
+        .reduce(
+          (sum, p) =>
+            sum +
+            (Number(p.likeCount || 0) +
+              Number(p.commentCount || 0)),
+          0,
+        )
+    : 0;
+
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem('agrovibes_seen_interactions');
+      if (raw != null) {
+        const n = Number(raw);
+        if (!Number.isNaN(n)) {
+          setSeenInteractions(n);
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const unseenInteractions = Math.max(
+    myInteractionTotal - seenInteractions,
+    0,
+  );
+
+  const handleOpenNotifications = () => {
+    setActiveTab(TABS.PROFILE);
+    try {
+      window.localStorage.setItem(
+        'agrovibes_seen_interactions',
+        String(myInteractionTotal),
+      );
+    } catch {
+      // ignore
+    }
+    setSeenInteractions(myInteractionTotal);
+  };
+
+  const handleViewUserFromSearch = (userSummary) => {
+    setFeedUserFilter(
+      userSummary
+        ? {
+            id: userSummary.id,
+            username: userSummary.username || '',
+            fullName: userSummary.fullName || '',
+          }
+        : null,
+    );
+    setActiveTab(TABS.FEED);
+    if (typeof window !== 'undefined') {
+      try {
+        window.localStorage.setItem('agrovibes_active_tab', TABS.FEED);
+      } catch {
+        // ignore
+      }
+    }
   };
 
   const handleAddToCart = (item) => {
@@ -603,7 +674,19 @@ function AppContent() {
             >
               🔍
             </button>
-            <button type="button" aria-label="Cart">❤️</button>
+            <button
+              type="button"
+              className="app-header-notif-btn"
+              aria-label="Notifications"
+              onClick={handleOpenNotifications}
+            >
+              ❤️
+              {unseenInteractions > 0 && (
+                <span className="app-header-notif-badge">
+                  {unseenInteractions > 9 ? '9+' : unseenInteractions}
+                </span>
+              )}
+            </button>
           </div>
           <div className="app-header-auth">
             {user ? (
@@ -745,7 +828,17 @@ function AppContent() {
           <div className="ig-feed-column">
             {activeTab === TABS.FEED && (
               <Media
-                posts={data.posts}
+                posts={
+                  feedUserFilter && data.posts.length
+                    ? data.posts.filter((p) => {
+                        const farmer = (p.farmer || '').toString();
+                        return (
+                          farmer === feedUserFilter.fullName ||
+                          farmer === feedUserFilter.username
+                        );
+                      })
+                    : data.posts
+                }
                 loading={loading.feed}
                 refreshPosts={refreshPosts}
                 onDeletePost={handleDeletePost}
@@ -809,7 +902,9 @@ function AppContent() {
               <Learning courses={data.courses} />
             )}
 
-            {activeTab === TABS.COMMUNITY && <Community />}
+            {activeTab === TABS.COMMUNITY && (
+              <Community onViewUser={handleViewUserFromSearch} />
+            )}
 
             {activeTab === TABS.PROFILE && (
               <Profile

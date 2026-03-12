@@ -26,25 +26,14 @@ function Profile({ posts = [], onEditProfile, onOpenLogin, onOpenSignup }) {
   useEffect(() => {
     if (!isAuthenticated || !user) return;
     setLoadingPosts(true);
-    api
-      .getMyPosts()
-      .then((list) => {
-        const arr = Array.isArray(list) ? list : [];
-        const mine = arr.filter(
-          (p) =>
-            p.userId === user.id ||
-            p.farmer === user.fullName ||
-            p.farmer === user.username,
-        );
-        setMyPosts(mine);
-      })
-      .catch(() => {
-        const fallback = (posts || []).filter(
-          (p) => p.userId === user.id || p.farmer === user.fullName || p.farmer === user.username
-        );
-        setMyPosts(fallback);
-      })
-      .finally(() => setLoadingPosts(false));
+    const mine = (posts || []).filter(
+      (p) =>
+        p.userId === user.id ||
+        p.farmer === user.fullName ||
+        p.farmer === user.username
+    );
+    setMyPosts(mine);
+    setLoadingPosts(false);
   }, [isAuthenticated, user, posts]);
 
   const displayPosts = myPosts.length > 0 ? myPosts : (posts.filter((p) => p.farmer === user?.fullName || p.farmer === user?.username) || []);

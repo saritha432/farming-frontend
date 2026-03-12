@@ -129,7 +129,8 @@ function AppContent() {
         if (activeTab === TABS.FEED && apiData.posts === null) {
           const posts = await api.getPosts(api.getClientId()).catch(() => null);
           if (!cancelled && Array.isArray(posts)) {
-            setApiData((prev) => ({ ...prev, posts }));
+            const sorted = [...posts].sort((a, b) => Number(b.id || 0) - Number(a.id || 0));
+            setApiData((prev) => ({ ...prev, posts: sorted }));
           }
         }
 

@@ -48,12 +48,14 @@ function Profile({ posts = [], onEditProfile, onOpenLogin, onOpenSignup }) {
   useEffect(() => {
     if (!isAuthenticated || !user) return;
     setLoadingPosts(true);
-    const mine = (posts || []).filter(
-      (p) =>
-        p.userId === user.id ||
-        p.farmer === user.fullName ||
-        p.farmer === user.username
-    );
+    const mine = (posts || [])
+      .filter(
+        (p) =>
+          p.userId === user.id ||
+          p.farmer === user.fullName ||
+          p.farmer === user.username
+      )
+      .sort((a, b) => Number(b.id || 0) - Number(a.id || 0));
     setMyPosts(mine);
     setLoadingPosts(false);
   }, [isAuthenticated, user, posts]);

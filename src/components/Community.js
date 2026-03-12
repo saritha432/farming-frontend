@@ -21,13 +21,18 @@ function Community({ onViewUser }) {
     }
   };
 
-  const toggleFollow = (userId) => {
-    setResults((prev) =>
-      prev.map((u) =>
-        u.id === userId ? { ...u, isFollowing: !u.isFollowing } : u,
-      ),
-    );
+  const toggleFollow = async (userId) => {
+    try {
+      const res = await api.followUser(userId);
+      const following = !!res?.following;
+      setResults((prev) =>
+        prev.map((u) => (u.id === userId ? { ...u, isFollowing: following } : u)),
+      );
+    } catch {
+      // ignore for now
+    }
   };
+  
 
   return (
     <section className="section">

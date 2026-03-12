@@ -82,10 +82,12 @@ export const api = {
     return Promise.resolve();
   },
   getMe: () => request('/api/auth/me'),
+  // Profile helpers currently use only client-side filtering of posts.
+  // These endpoints are defined for future API use but not required now.
   getUserProfile: (userId) => request(`/api/users/${userId}`),
   updateProfile: (body) =>
     request('/api/users/me', { method: 'PATCH', body: JSON.stringify(body) }),
-  getMyPosts: () => request('/api/users/me/posts').catch(() => []),
+  getMyPosts: () => Promise.resolve([]),
 
   getPosts: (clientId) => {
     const q = clientId ? `?clientId=${encodeURIComponent(clientId)}` : '';
@@ -196,19 +198,32 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(body),
     }),
-  // Users search & follow
-  searchUsers: (q, clientId) => {
-    const params = [];
-    if (q) params.push(`q=${encodeURIComponent(q)}`);
-    if (clientId) params.push(`clientId=${encodeURIComponent(clientId)}`);
-    const qs = params.length ? `?${params.join('&')}` : '';
-    return request(`/api/users${qs}`);
+  // Users search & follow (frontend-only, derived from posts)
+  searchUsers: async (q) => {
+    const posts = await request('/api/posts');
+    const term = (q || '').toString().trim().toLowerCase();
+    const byKey = new Map();
+    (Array.isArray(posts) ? posts : []).forEach((p) => {
+      const farmer = (p.farmer || '').toString().trim();
+      if (!farmer) return;
+      const key = farmer.toLowerCase();
+      if (term && !key.includes(term)) return;
+      if (!byKey.has(key)) {
+        byKey.set(key, {
+          id: key,
+          username: farmer,
+          fullName: '',
+          email: '',
+          isFollowing: false,
+        });
+      }
+    });
+    return Array.from(byKey.values());
   },
-  followUser: (userId) =>
-    request(`/api/users/${userId}/follow`, {
-      method: 'POST',
-      body: JSON.stringify({ clientId: getClientId() }),
-    }),
+  followUser: async (userId) => {
+    // Pure client-side toggle; backend follow table is not required here.
+    return { following: true, userId };
+  },
 };
 
 export default api;

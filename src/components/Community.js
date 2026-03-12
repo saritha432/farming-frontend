@@ -1,9 +1,32 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../api';
+import { useAuth } from '../context/AuthContext';
+
+const FOLLOW_REQUESTS_KEY = 'agrovibes_follow_requests';
+
+function loadFollowRequests() {
+  try {
+    const raw = window.localStorage.getItem(FOLLOW_REQUESTS_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveFollowRequests(list) {
+  try {
+    window.localStorage.setItem(FOLLOW_REQUESTS_KEY, JSON.stringify(list || []));
+  } catch {
+    // ignore
+  }
+}
 
 function Community({ onViewUser }) {
   const { t } = useTranslation();
+  const { user } = useAuth();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -13,7 +36,19 @@ function Community({ onViewUser }) {
     setLoading(true);
     try {
       const list = await api.searchUsers(query.trim(), api.getClientId());
-      setResults(Array.isArray(list) ? list : []);
+      const allRequests = loadFollowRequests();
+      const enhanced = (Array.isArray(list) ? list : []).map((u) => {
+        const hasPending =
+          user &&
+          allRequests.some(
+            (r) =>
+              r.fromId === user.id &&
+              r.toId === u.id &&
+              r.status === 'pending',
+          );
+        return hasPending ? { ...u, requestStatus: 'pending' } : u;
+      });
+      setResults(enhanced);
     } catch {
       setResults([]);
     } finally {
@@ -21,16 +56,37 @@ function Community({ onViewUser }) {
     }
   };
 
-  const toggleFollow = async (userId) => {
-    try {
-      const res = await api.followUser(userId);
-      const following = !!res?.following;
-      setResults((prev) =>
-        prev.map((u) => (u.id === userId ? { ...u, isFollowing: following } : u)),
-      );
-    } catch {
-      // ignore for now
+  const sendFollowRequest = (targetUser) => {
+    if (!user) {
+      alert(t('community.loginToFollow', 'Please log in to follow users.'));
+      return;
     }
+    if (!user.id || !targetUser.id) return;
+
+    const all = loadFollowRequests();
+    const alreadyPending = all.some(
+      (r) =>
+        r.fromId === user.id &&
+        r.toId === targetUser.id &&
+        r.status === 'pending',
+    );
+    if (alreadyPending) return;
+
+    const request = {
+      id: Date.now(),
+      fromId: user.id,
+      fromName: user.username || user.fullName || user.email || 'User',
+      toId: targetUser.id,
+      toName: targetUser.username || targetUser.fullName || targetUser.email || 'User',
+      status: 'pending',
+    };
+    const next = [...all, request];
+    saveFollowRequests(next);
+    setResults((prev) =>
+      prev.map((u) =>
+        u.id === targetUser.id ? { ...u, requestStatus: 'pending' } : u,
+      ),
+    );
   };
   
 
@@ -86,10 +142,10 @@ function Community({ onViewUser }) {
                   <button
                     type="button"
                     className="small-btn"
-                    onClick={() => toggleFollow(u.id)}
+                    onClick={() => sendFollowRequest(u)}
                   >
-                    {u.isFollowing
-                      ? t('community.following', 'Following')
+                    {u.requestStatus === 'pending'
+                      ? t('community.requested', 'Requested')
                       : t('community.follow', 'Follow')}
                   </button>
                   {onViewUser && (

@@ -69,7 +69,6 @@ function AppContent() {
   const [showAddPostModal, setShowAddPostModal] = useState(false);
   const prevUserRef = useRef(null);
   const [seenInteractions, setSeenInteractions] = useState(0);
-  const [feedUserFilter, setFeedUserFilter] = useState(null);
 
   const addToast = useCallback(({ id, message, type }) => {
     setToasts((prev) => [...prev, { id: id || Date.now(), message, type: type || 'info' }]);
@@ -274,25 +273,6 @@ function AppContent() {
     setSeenInteractions(myInteractionTotal);
   };
 
-  const handleViewUserFromSearch = (userSummary) => {
-    setFeedUserFilter(
-      userSummary
-        ? {
-            id: userSummary.id,
-            username: userSummary.username || '',
-            fullName: userSummary.fullName || '',
-          }
-        : null,
-    );
-    setActiveTab(TABS.FEED);
-    if (typeof window !== 'undefined') {
-      try {
-        window.localStorage.setItem('agrovibes_active_tab', TABS.FEED);
-      } catch {
-        // ignore
-      }
-    }
-  };
 
   const handleAddToCart = (item) => {
     setCart((prev) => {
@@ -829,17 +809,7 @@ function AppContent() {
           <div className="ig-feed-column">
             {activeTab === TABS.FEED && (
               <Media
-                posts={
-                  feedUserFilter && data.posts.length
-                    ? data.posts.filter((p) => {
-                        const farmer = (p.farmer || '').toString();
-                        return (
-                          farmer === feedUserFilter.fullName ||
-                          farmer === feedUserFilter.username
-                        );
-                      })
-                    : data.posts
-                }
+                posts={data.posts}
                 loading={loading.feed}
                 refreshPosts={refreshPosts}
                 onDeletePost={handleDeletePost}

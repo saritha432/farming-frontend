@@ -903,9 +903,7 @@ function AppContent() {
               <Learning courses={data.courses} />
             )}
 
-            {activeTab === TABS.COMMUNITY && (
-              <Community onViewUser={handleViewUserFromSearch} />
-            )}
+            {activeTab === TABS.COMMUNITY && <Community />}
 
             {activeTab === TABS.PROFILE && (
               <Profile

@@ -38,6 +38,8 @@ function Profile({ posts = [], onEditProfile, onOpenLogin, onOpenSignup }) {
   const [editFullName, setEditFullName] = useState('');
   const [savingProfile, setSavingProfile] = useState(false);
   const [followRequests, setFollowRequests] = useState([]);
+  const [selectedPost, setSelectedPost] = useState(null);
+  const [showPostModal, setShowPostModal] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -206,8 +208,17 @@ function Profile({ posts = [], onEditProfile, onOpenLogin, onOpenSignup }) {
           <div className="profile-grid">
             {displayPosts.map((post) => {
               const src = mediaUrl(post.mediaUrl || post.media || post.url || post.image);
+              const handleOpenPost = () => {
+                setSelectedPost(post);
+                setShowPostModal(true);
+              };
               return (
-                <div key={post.id} className="profile-grid-item">
+                <button
+                  key={post.id}
+                  type="button"
+                  className="profile-grid-item"
+                  onClick={handleOpenPost}
+                >
                   {src ? (
                     post.type === 'Video' ? (
                       <video src={src} muted />
@@ -217,7 +228,7 @@ function Profile({ posts = [], onEditProfile, onOpenLogin, onOpenSignup }) {
                   ) : (
                     <div className="profile-grid-placeholder">{post.title || '📷'}</div>
                   )}
-                </div>
+                </button>
               );
             })}
           </div>
@@ -255,6 +266,57 @@ function Profile({ posts = [], onEditProfile, onOpenLogin, onOpenSignup }) {
               </button>
             </div>
           </form>
+        </Modal>
+      )}
+
+      {showPostModal && selectedPost && (
+        <Modal
+          title={selectedPost.title || t('profile.postDetails', 'Post')}
+          onClose={() => {
+            setShowPostModal(false);
+            setSelectedPost(null);
+          }}
+        >
+          <div className="profile-post-modal">
+            <div className="profile-post-modal-media">
+              {(() => {
+                const src = mediaUrl(
+                  selectedPost.mediaUrl ||
+                    selectedPost.media ||
+                    selectedPost.url ||
+                    selectedPost.image,
+                );
+                if (!src) {
+                  return (
+                    <div className="profile-grid-placeholder">
+                      {selectedPost.title || '📷'}
+                    </div>
+                  );
+                }
+                if (selectedPost.type === 'Video') {
+                  return <video src={src} controls style={{ width: '100%' }} />;
+                }
+                return <img src={src} alt={selectedPost.title || ''} style={{ width: '100%' }} />;
+              })()}
+            </div>
+            <div className="profile-post-modal-body">
+              <div className="profile-post-meta">
+                <div className="profile-post-author">
+                  {selectedPost.farmer || user?.fullName || user?.username}
+                </div>
+                {selectedPost.location && (
+                  <div className="profile-post-location">
+                    {selectedPost.location}
+                  </div>
+                )}
+              </div>
+              {selectedPost.description && (
+                <p className="profile-post-description">
+                  {selectedPost.description}
+                </p>
+              )}
+            </div>
+          </div>
         </Modal>
       )}
     </section>

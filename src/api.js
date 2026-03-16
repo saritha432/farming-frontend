@@ -199,39 +199,40 @@ export const api = {
       body: JSON.stringify(body),
     }),
   // Users search & follow (real API)
-// src/api.js
-searchUsers: async (q, clientId) => {
-  const params = [];
-  if (q) params.push(`q=${encodeURIComponent(q)}`);
-  if (clientId) params.push(`clientId=${encodeURIComponent(clientId)}`);
-  const qs = params.length ? `?${params.join('&')}` : '';
+  // Prefer the users API; if it's not available on a given backend (404),
+  // gracefully fall back to deriving "users" from posts, so search still works.
+  searchUsers: async (q, clientId) => {
+    const params = [];
+    if (q) params.push(`q=${encodeURIComponent(q)}`);
+    if (clientId) params.push(`clientId=${encodeURIComponent(clientId)}`);
+    const qs = params.length ? `?${params.join('&')}` : '';
 
-  try {
-    return await request(`/api/users${qs}`);
-  } catch (err) {
-    if (err.status !== 404) throw err;
+    try {
+      return await request(`/api/users${qs}`);
+    } catch (err) {
+      if (err.status !== 404) throw err;
 
-    const posts = await request('/api/posts');
-    const term = (q || '').toString().trim().toLowerCase();
-    const byKey = new Map();
-    (Array.isArray(posts) ? posts : []).forEach((p) => {
-      const farmer = (p.farmer || '').toString().trim();
-      if (!farmer) return;
-      const key = farmer.toLowerCase();
-      if (term && !key.includes(term)) return;
-      if (!byKey.has(key)) {
-        byKey.set(key, {
-          id: key,
-          username: farmer,
-          fullName: '',
-          email: '',
-          isFollowing: false,
-        });
-      }
-    });
-    return Array.from(byKey.values());
-  }
-},
+      const posts = await request('/api/posts');
+      const term = (q || '').toString().trim().toLowerCase();
+      const byKey = new Map();
+      (Array.isArray(posts) ? posts : []).forEach((p) => {
+        const farmer = (p.farmer || '').toString().trim();
+        if (!farmer) return;
+        const key = farmer.toLowerCase();
+        if (term && !key.includes(term)) return;
+        if (!byKey.has(key)) {
+          byKey.set(key, {
+            id: key,
+            username: farmer,
+            fullName: '',
+            email: '',
+            isFollowing: false,
+          });
+        }
+      });
+      return Array.from(byKey.values());
+    }
+  },
   followUser: (userId) =>
     request(`/api/users/${userId}/follow`, {
       method: 'POST',

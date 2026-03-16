@@ -25,6 +25,12 @@ function saveFollowRequests(list) {
   }
 }
 
+// Keep a single way of identifying users across search/profile
+function getUserKey(u) {
+  if (!u) return null;
+  return u.id || u._id || u.userId || u.email || u.username || null;
+}
+
 const BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 const mediaUrl = (path) => (path && path.startsWith('/') ? BASE + path : path);
 
@@ -64,9 +70,14 @@ function Profile({ posts = [], onEditProfile, onOpenLogin, onOpenSignup }) {
 
   useEffect(() => {
     if (!user) return;
+    const myId = getUserKey(user);
+    if (!myId) {
+      setFollowRequests([]);
+      return;
+    }
     const all = loadFollowRequests();
     const mine = all.filter(
-      (r) => r.toId === user.id && r.status === 'pending',
+      (r) => r.toId === myId && r.status === 'pending',
     );
     setFollowRequests(mine);
   }, [user]);
@@ -77,9 +88,10 @@ function Profile({ posts = [], onEditProfile, onOpenLogin, onOpenSignup }) {
       r.id === id ? { ...r, status } : r,
     );
     saveFollowRequests(updated);
+    const myId = getUserKey(user);
     setFollowRequests(
       updated.filter(
-        (r) => r.toId === user.id && r.status === 'pending',
+        (r) => r.toId === myId && r.status === 'pending',
       ),
     );
   };
@@ -301,7 +313,17 @@ function Profile({ posts = [], onEditProfile, onOpenLogin, onOpenSignup }) {
                   );
                 }
                 if (selectedPost.type === 'Video') {
-                  return <video src={src} controls style={{ width: '100%' }} />;
+                  return (
+                    <video
+                      src={src}
+                      controls
+                      muted
+                      autoPlay
+                      loop
+                      playsInline
+                      style={{ width: '100%' }}
+                    />
+                  );
                 }
                 return <img src={src} alt={selectedPost.title || ''} style={{ width: '100%' }} />;
               })()}

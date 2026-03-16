@@ -24,6 +24,12 @@ function saveFollowRequests(list) {
   }
 }
 
+// Try multiple possible id fields so search + profile stay in sync
+function getUserKey(u) {
+  if (!u) return null;
+  return u.id || u._id || u.userId || u.email || u.username || null;
+}
+
 function Community({ onViewUser }) {
   const { t } = useTranslation();
   const { user } = useAuth();
@@ -37,13 +43,16 @@ function Community({ onViewUser }) {
     try {
       const list = await api.searchUsers(query.trim(), api.getClientId());
       const allRequests = loadFollowRequests();
+      const fromId = getUserKey(user);
       const enhanced = (Array.isArray(list) ? list : []).map((u) => {
+        const targetId = getUserKey(u);
         const hasPending =
-          user &&
+          fromId &&
+          targetId &&
           allRequests.some(
             (r) =>
-              r.fromId === user.id &&
-              r.toId === u.id &&
+              r.fromId === fromId &&
+              r.toId === targetId &&
               r.status === 'pending',
           );
         return hasPending ? { ...u, requestStatus: 'pending' } : u;
@@ -61,31 +70,34 @@ function Community({ onViewUser }) {
       alert(t('community.loginToFollow', 'Please log in to follow users.'));
       return;
     }
-    if (!user.id || !targetUser.id) return;
+    const fromId = getUserKey(user);
+    const toId = getUserKey(targetUser);
+    if (!fromId || !toId) return;
 
     const all = loadFollowRequests();
     const alreadyPending = all.some(
       (r) =>
-        r.fromId === user.id &&
-        r.toId === targetUser.id &&
+        r.fromId === fromId &&
+        r.toId === toId &&
         r.status === 'pending',
     );
     if (alreadyPending) return;
 
     const request = {
       id: Date.now(),
-      fromId: user.id,
+      fromId: fromId,
       fromName: user.username || user.fullName || user.email || 'User',
-      toId: targetUser.id,
+      toId: toId,
       toName: targetUser.username || targetUser.fullName || targetUser.email || 'User',
       status: 'pending',
     };
     const next = [...all, request];
     saveFollowRequests(next);
     setResults((prev) =>
-      prev.map((u) =>
-        u.id === targetUser.id ? { ...u, requestStatus: 'pending' } : u,
-      ),
+      prev.map((u) => {
+        const uid = getUserKey(u);
+        return uid && uid === toId ? { ...u, requestStatus: 'pending' } : u;
+      }),
     );
   };
   

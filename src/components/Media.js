@@ -267,7 +267,14 @@ function Media({ posts = [], loading, refreshPosts, onDeletePost, showToast, t: 
                 <div className="ig-post-media">
                   {url ? (
                     post.type === 'Video' ? (
-                      <video src={url} controls />
+                      <video
+                        src={url}
+                        controls
+                        muted
+                        autoPlay
+                        loop
+                        playsInline
+                      />
                     ) : (
                       <img src={url} alt={post.title} />
                     )

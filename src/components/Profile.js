@@ -128,6 +128,41 @@ function Profile({ posts = [], onEditProfile, onOpenLogin, onOpenSignup }) {
 
   return (
     <section className="section profile-section">
+      {followRequests.length > 0 && (
+        <div className="card profile-follow-requests-banner">
+          <h2 className="profile-posts-title">
+            {t('profile.followRequests', 'Follow requests')}
+          </h2>
+          <ul className="list">
+            {followRequests.map((r) => (
+              <li key={r.id} className="list-item">
+                <div>
+                  <div className="list-title">
+                    {r.fromName}
+                  </div>
+                </div>
+                <div className="card-footer-row">
+                  <button
+                    type="button"
+                    className="small-btn"
+                    onClick={() => handleFollowRequest(r.id, 'accepted')}
+                  >
+                    {t('profile.accept', 'Accept')}
+                  </button>
+                  <button
+                    type="button"
+                    className="small-btn"
+                    onClick={() => handleFollowRequest(r.id, 'rejected')}
+                  >
+                    {t('profile.reject', 'Reject')}
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <div className="profile-header card">
         <div className="profile-avatar-wrap">
           <div className="profile-avatar">
@@ -158,40 +193,6 @@ function Profile({ posts = [], onEditProfile, onOpenLogin, onOpenSignup }) {
       </div>
 
       <div className="profile-posts-section">
-        {followRequests.length > 0 && (
-          <div className="card" style={{ marginBottom: '1rem' }}>
-            <h2 className="profile-posts-title">
-              {t('profile.followRequests', 'Follow requests')}
-            </h2>
-            <ul className="list">
-              {followRequests.map((r) => (
-                <li key={r.id} className="list-item">
-                  <div>
-                    <div className="list-title">
-                      {r.fromName}
-                    </div>
-                  </div>
-                  <div className="card-footer-row">
-                    <button
-                      type="button"
-                      className="small-btn"
-                      onClick={() => handleFollowRequest(r.id, 'accepted')}
-                    >
-                      {t('profile.accept', 'Accept')}
-                    </button>
-                    <button
-                      type="button"
-                      className="small-btn"
-                      onClick={() => handleFollowRequest(r.id, 'rejected')}
-                    >
-                      {t('profile.reject', 'Reject')}
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
         <h2 className="profile-posts-title">{t('profile.posts', 'Posts')}</h2>
         {loadingPosts ? (
           <div className="profile-grid profile-grid-skeleton">
@@ -221,7 +222,13 @@ function Profile({ posts = [], onEditProfile, onOpenLogin, onOpenSignup }) {
                 >
                   {src ? (
                     post.type === 'Video' ? (
-                      <video src={src} muted />
+                      <video
+                        src={src}
+                        muted
+                        autoPlay
+                        loop
+                        playsInline
+                      />
                     ) : (
                       <img src={src} alt={post.title || ''} />
                     )

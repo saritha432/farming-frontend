@@ -212,6 +212,22 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ clientId: getClientId() }),
     }),
+  // Follow requests across devices (user-to-user)
+  createFollowRequest: (toUserId, fromUserId, fromName) =>
+    request(`/api/users/${toUserId}/follow-request`, {
+      method: 'POST',
+      body: JSON.stringify({ fromUserId, fromName }),
+    }),
+  getMyFollowRequests: (toUserId, status = 'pending') => {
+    const params = new URLSearchParams();
+    if (toUserId != null) params.set('toUserId', String(toUserId));
+    if (status) params.set('status', status);
+    return request(`/api/users/follow-requests?${params.toString()}`);
+  },
+  respondFollowRequest: (id, action) =>
+    request(`/api/users/follow-requests/${id}/${action}`, {
+      method: 'POST',
+    }),
 };
 
 export default api;

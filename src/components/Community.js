@@ -3,32 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { api } from '../api';
 import { useAuth } from '../context/AuthContext';
 
-const FOLLOW_REQUESTS_KEY = 'agrovibes_follow_requests';
-
-function loadFollowRequests() {
-  try {
-    const raw = window.localStorage.getItem(FOLLOW_REQUESTS_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveFollowRequests(list) {
-  try {
-    window.localStorage.setItem(FOLLOW_REQUESTS_KEY, JSON.stringify(list || []));
-  } catch {
-    // ignore
-  }
-}
-
-// Try multiple possible id fields so search + profile stay in sync
-function getUserKey(u) {
-  if (!u) return null;
-  return u.id || u._id || u.userId || u.email || u.username || null;
-}
+// Community search uses real backend follow-requests now; no localStorage keys needed.
 
 function Community({ onViewUser }) {
   const { t } = useTranslation();
@@ -42,21 +17,7 @@ function Community({ onViewUser }) {
     setLoading(true);
     try {
       const list = await api.searchUsers(query.trim(), api.getClientId());
-      const allRequests = loadFollowRequests();
-      const fromId = getUserKey(user);
-      const enhanced = (Array.isArray(list) ? list : []).map((u) => {
-        const targetId = getUserKey(u);
-        const hasPending =
-          fromId &&
-          targetId &&
-          allRequests.some(
-            (r) =>
-              r.fromId === fromId &&
-              r.toId === targetId &&
-              r.status === 'pending',
-          );
-        return hasPending ? { ...u, requestStatus: 'pending' } : u;
-      });
+      const enhanced = Array.isArray(list) ? list : [];
       setResults(enhanced);
     } catch {
       setResults([]);
@@ -70,35 +31,25 @@ function Community({ onViewUser }) {
       alert(t('community.loginToFollow', 'Please log in to follow users.'));
       return;
     }
-    const fromId = getUserKey(user);
-    const toId = getUserKey(targetUser);
-    if (!fromId || !toId) return;
+    const toUserId = targetUser.id;
+    const fromUserId = user.id;
+    if (!toUserId || !fromUserId) return;
 
-    const all = loadFollowRequests();
-    const alreadyPending = all.some(
-      (r) =>
-        r.fromId === fromId &&
-        r.toId === toId &&
-        r.status === 'pending',
-    );
-    if (alreadyPending) return;
+    const fromName =
+      user.username || user.fullName || user.email || 'User';
 
-    const request = {
-      id: Date.now(),
-      fromId: fromId,
-      fromName: user.username || user.fullName || user.email || 'User',
-      toId: toId,
-      toName: targetUser.username || targetUser.fullName || targetUser.email || 'User',
-      status: 'pending',
-    };
-    const next = [...all, request];
-    saveFollowRequests(next);
-    setResults((prev) =>
-      prev.map((u) => {
-        const uid = getUserKey(u);
-        return uid && uid === toId ? { ...u, requestStatus: 'pending' } : u;
-      }),
-    );
+    api
+      .createFollowRequest(toUserId, fromUserId, fromName)
+      .then(() => {
+        setResults((prev) =>
+          prev.map((u) =>
+            u.id === toUserId ? { ...u, requestStatus: 'pending' } : u,
+          ),
+        );
+      })
+      .catch(() => {
+        // optional: show error toast later
+      });
   };
   
 

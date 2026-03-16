@@ -4,26 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { api } from '../api';
 import Modal from './Modal';
 
-const FOLLOW_REQUESTS_KEY = 'agrovibes_follow_requests';
-
-function loadFollowRequests() {
-  try {
-    const raw = window.localStorage.getItem(FOLLOW_REQUESTS_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveFollowRequests(list) {
-  try {
-    window.localStorage.setItem(FOLLOW_REQUESTS_KEY, JSON.stringify(list || []));
-  } catch {
-    // ignore
-  }
-}
+// Follow requests are now loaded from the backend via api.getMyFollowRequests.
 
 // Keep a single way of identifying users across search/profile
 function getUserKey(u) {
@@ -70,30 +51,26 @@ function Profile({ posts = [], onEditProfile, onOpenLogin, onOpenSignup }) {
 
   useEffect(() => {
     if (!user) return;
-    const myId = getUserKey(user);
-    if (!myId) {
-      setFollowRequests([]);
-      return;
-    }
-    const all = loadFollowRequests();
-    const mine = all.filter(
-      (r) => r.toId === myId && r.status === 'pending',
-    );
-    setFollowRequests(mine);
+    api
+      .getMyFollowRequests(user.id, 'pending')
+      .then((list) => {
+        setFollowRequests(Array.isArray(list) ? list : []);
+      })
+      .catch(() => {
+        setFollowRequests([]);
+      });
   }, [user]);
 
-  const handleFollowRequest = (id, status) => {
-    const all = loadFollowRequests();
-    const updated = all.map((r) =>
-      r.id === id ? { ...r, status } : r,
-    );
-    saveFollowRequests(updated);
-    const myId = getUserKey(user);
-    setFollowRequests(
-      updated.filter(
-        (r) => r.toId === myId && r.status === 'pending',
-      ),
-    );
+  const handleFollowRequest = async (id, status) => {
+    const action = status === 'accepted' ? 'accept' : 'reject';
+    try {
+      await api.respondFollowRequest(id, action);
+      setFollowRequests((prev) =>
+        prev.filter((r) => r.id !== id && r._id !== id),
+      );
+    } catch {
+      // ignore for now or show toast in future
+    }
   };
 
   const displayPosts = myPosts.length > 0 ? myPosts : (posts.filter((p) => p.farmer === user?.fullName || p.farmer === user?.username) || []);

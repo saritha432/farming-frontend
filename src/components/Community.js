@@ -108,7 +108,13 @@ function Community({ onViewUser }) {
               type="search"
               className="form-input"
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={(e) => {
+                const value = e.target.value;
+                setQuery(value);
+                if (value.trim() === '') {
+                  setResults([]);
+                }
+              }}
               placeholder={t('community.searchPlaceholder', 'e.g. johndoe')}
             />
           </label>

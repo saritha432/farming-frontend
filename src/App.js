@@ -69,6 +69,7 @@ function AppContent() {
   const [showAddPostModal, setShowAddPostModal] = useState(false);
   const prevUserRef = useRef(null);
   const [seenInteractions, setSeenInteractions] = useState(0);
+  const [followRequests, setFollowRequests] = useState([]);
 
   const addToast = useCallback(({ id, message, type }) => {
     setToasts((prev) => [...prev, { id: id || Date.now(), message, type: type || 'info' }]);
@@ -260,6 +261,9 @@ function AppContent() {
     0,
   );
 
+  const hasFollowRequests = Array.isArray(followRequests) && followRequests.length > 0;
+  const hasNotifications = unseenInteractions > 0 || hasFollowRequests;
+
   const handleOpenNotifications = () => {
     setActiveTab(TABS.PROFILE);
     try {
@@ -272,6 +276,21 @@ function AppContent() {
     }
     setSeenInteractions(myInteractionTotal);
   };
+
+  useEffect(() => {
+    if (!user) {
+      setFollowRequests([]);
+      return;
+    }
+    api
+      .getMyFollowRequests(user.id, 'pending')
+      .then((list) => {
+        setFollowRequests(Array.isArray(list) ? list : []);
+      })
+      .catch(() => {
+        setFollowRequests([]);
+      });
+  }, [user]);
 
 
   const handleAddToCart = (item) => {
@@ -540,6 +559,59 @@ function AppContent() {
     setShowCartDropdown(false);
   };
 
+  const loadRazorpayScript = () =>
+    new Promise((resolve, reject) => {
+      if (window.Razorpay) {
+        resolve(true);
+        return;
+      }
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.onload = () => resolve(true);
+      script.onerror = () => reject(new Error('Razorpay SDK failed to load.'));
+      document.body.appendChild(script);
+    });
+
+  const handleProceedSalesPayment = async ({ cart: salesCart, quantities, totalAmount }) => {
+    try {
+      await loadRazorpayScript();
+    } catch {
+      addToast({ id: Date.now(), message: t('sales.paymentInitFailed', 'Unable to start payment. Please check your internet and try again.'), type: 'error' });
+      return;
+    }
+
+    const options = {
+      key: 'rzp_test_1234567890abcdef', // TODO: replace with your real Razorpay key
+      amount: Math.round((totalAmount || 0) * 100), // in paise
+      currency: 'INR',
+      name: 'AgroVibes',
+      description: 'Direct sales order payment',
+      handler: (response) => {
+        addToast({
+          id: Date.now(),
+          message: t('sales.paymentSuccess', 'Payment successful! Your order has been placed.'),
+          type: 'success',
+        });
+        clearCart();
+        // Optionally: send response + order details to your backend here.
+        console.log('Razorpay payment success', response, salesCart, quantities, totalAmount);
+      },
+      prefill: {
+        name: user?.fullName || user?.username || '',
+        email: user?.email || '',
+      },
+      notes: {
+        platform: 'AgroVibes',
+      },
+      theme: {
+        color: '#15803d',
+      },
+    };
+
+    const rzp = new window.Razorpay(options);
+    rzp.open();
+  };
+
   // Auth gate: show only signup/login for new visitors (Instagram/FB style)
   if (authLoading) {
     return (
@@ -662,9 +734,13 @@ function AppContent() {
               onClick={handleOpenNotifications}
             >
               ❤️
-              {unseenInteractions > 0 && (
+              {hasNotifications && (
                 <span className="app-header-notif-badge">
-                  {unseenInteractions > 9 ? '9+' : unseenInteractions}
+                  {unseenInteractions > 0
+                    ? unseenInteractions > 9
+                      ? '9+'
+                      : unseenInteractions
+                    : '•'}
                 </span>
               )}
             </button>
@@ -864,8 +940,7 @@ function AppContent() {
                 loading={loading.sales}
                 onAddToCart={handleAddToCart}
                 onAddSalesItem={handleAddSalesItem}
-                showToast={addToast}
-                t={t}
+                onProceedPayment={handleProceedSalesPayment}
               />
             )}
 

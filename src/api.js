@@ -228,6 +228,10 @@ export const api = {
     request(`/api/users/follow-requests/${id}/${action}`, {
       method: 'POST',
     }),
+  getFollowers: (userId) =>
+    request(`/api/users/${userId}/followers`),
+  getFollowing: (userId) =>
+    request(`/api/users/${userId}/following`),
 };
 
 export default api;

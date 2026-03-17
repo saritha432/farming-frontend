@@ -27,6 +27,10 @@ function Profile({ posts = [], onEditProfile, onOpenLogin, onOpenSignup }) {
   const [followRequests, setFollowRequests] = useState([]);
   const [selectedPost, setSelectedPost] = useState(null);
   const [showPostModal, setShowPostModal] = useState(false);
+  const [followers, setFollowers] = useState([]);
+  const [following, setFollowing] = useState([]);
+  const [showFollowersModal, setShowFollowersModal] = useState(false);
+  const [showFollowingModal, setShowFollowingModal] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -59,6 +63,18 @@ function Profile({ posts = [], onEditProfile, onOpenLogin, onOpenSignup }) {
       .catch(() => {
         setFollowRequests([]);
       });
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    api
+      .getFollowers(user.id)
+      .then((list) => setFollowers(Array.isArray(list) ? list : []))
+      .catch(() => setFollowers([]));
+    api
+      .getFollowing(user.id)
+      .then((list) => setFollowing(Array.isArray(list) ? list : []))
+      .catch(() => setFollowing([]));
   }, [user]);
 
   const handleFollowRequest = async (id, status) => {
@@ -170,8 +186,20 @@ function Profile({ posts = [], onEditProfile, onOpenLogin, onOpenSignup }) {
           {user.bio && <p className="profile-bio">{user.bio}</p>}
           <div className="profile-stats">
             <span><strong>{displayPosts.length}</strong> {t('profile.posts', 'posts')}</span>
-            <span><strong>0</strong> {t('profile.followers', 'followers')}</span>
-            <span><strong>0</strong> {t('profile.following', 'following')}</span>
+            <button
+              type="button"
+              className="profile-stat-btn"
+              onClick={() => setShowFollowersModal(true)}
+            >
+              <strong>{followers.length}</strong> {t('profile.followers', 'followers')}
+            </button>
+            <button
+              type="button"
+              className="profile-stat-btn"
+              onClick={() => setShowFollowingModal(true)}
+            >
+              <strong>{following.length}</strong> {t('profile.following', 'following')}
+            </button>
           </div>
           <div className="profile-actions">
             <button type="button" className="primary-btn" onClick={() => setShowEditModal(true)}>
@@ -323,6 +351,62 @@ function Profile({ posts = [], onEditProfile, onOpenLogin, onOpenSignup }) {
               )}
             </div>
           </div>
+        </Modal>
+      )}
+
+      {showFollowersModal && (
+        <Modal
+          title={t('profile.followers', 'Followers')}
+          onClose={() => setShowFollowersModal(false)}
+        >
+          {followers.length === 0 ? (
+            <p className="muted">
+              {t('profile.noFollowers', 'No followers yet.')}
+            </p>
+          ) : (
+            <ul className="list">
+              {followers.map((f) => (
+                <li key={getUserKey(f)} className="list-item">
+                  <div className="list-title">
+                    {f.username || f.fullName || f.email || 'User'}
+                  </div>
+                  {f.fullName && f.email && (
+                    <div className="muted small">
+                      {f.fullName} • {f.email}
+                    </div>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </Modal>
+      )}
+
+      {showFollowingModal && (
+        <Modal
+          title={t('profile.following', 'Following')}
+          onClose={() => setShowFollowingModal(false)}
+        >
+          {following.length === 0 ? (
+            <p className="muted">
+              {t('profile.noFollowing', 'You are not following anyone yet.')}
+            </p>
+          ) : (
+            <ul className="list">
+              {following.map((f) => (
+                <li key={getUserKey(f)} className="list-item">
+                  <div className="list-title">
+                    {f.username || f.fullName || f.email || 'User'}
+                  </div>
+                  {f.fullName && f.email && (
+                    <div className="muted small">
+                      {f.fullName} • {f.email}
+                    </div>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
         </Modal>
       )}
     </section>

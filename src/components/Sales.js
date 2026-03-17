@@ -2,9 +2,12 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import Modal from './Modal';
 
-function Sales({ items, cart, loading, onAddToCart, onAddSalesItem }) {
+function Sales({ items, cart, loading, onAddToCart, onAddSalesItem, onProceedPayment }) {
   const { t } = useTranslation();
   const [showAddForm, setShowAddForm] = useState(false);
+  const [quantities, setQuantities] = useState({});
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentStatus, setPaymentStatus] = useState(null);
 
   const handleSubmitProduct = (e) => {
     e.preventDefault();
@@ -43,10 +46,70 @@ function Sales({ items, cart, loading, onAddToCart, onAddSalesItem }) {
     );
   }
 
-  const cartCount = Array.isArray(cart) ? cart.length : 0;
-  const uniqueFarms = Array.isArray(cart)
-    ? Array.from(new Set(cart.map((item) => item.farm).filter(Boolean)))
+  const safeCart = Array.isArray(cart) ? cart : [];
+  const cartCount = safeCart.length;
+  const uniqueFarms = cartCount
+    ? Array.from(new Set(safeCart.map((item) => item.farm).filter(Boolean)))
     : [];
+  const sortedCart = [...safeCart].sort((a, b) => {
+    const numA = a && a.price ? parseFloat(String(a.price).replace(/[^\d.]/g, '')) || 0 : 0;
+    const numB = b && b.price ? parseFloat(String(b.price).replace(/[^\d.]/g, '')) || 0 : 0;
+    return numA - numB;
+  });
+
+  const updateQuantity = (id, delta) => {
+    if (id == null) return;
+    setQuantities((prev) => {
+      const current = prev[id] || 1;
+      const next = current + delta;
+      if (next < 1) return prev;
+      return { ...prev, [id]: next };
+    });
+  };
+
+  const computeTotals = () => {
+    return sortedCart.reduce(
+      (acc, item) => {
+        const quantity = quantities[item.id] || 1;
+        const priceNum = item && item.price
+          ? parseFloat(String(item.price).replace(/[^\d.]/g, '')) || 0
+          : 0;
+        const lineTotal = priceNum * quantity;
+        acc.total += lineTotal;
+        return acc;
+      },
+      { total: 0 },
+    );
+  };
+
+  const handleProceedPayment = () => {
+    if (!cartCount) return;
+    setPaymentStatus(null);
+    setShowPaymentModal(true);
+  };
+
+  const handleConfirmPayment = async (e) => {
+    e.preventDefault();
+    const { total } = computeTotals();
+
+    // Hook for real payment gateway (Razorpay/Stripe/etc.) from parent
+    if (typeof onProceedPayment === 'function') {
+      await onProceedPayment({
+        cart: sortedCart,
+        quantities,
+        totalAmount: total,
+      });
+      setShowPaymentModal(false);
+      return;
+    }
+
+    // Frontend-only demo flow
+    setPaymentStatus('success');
+    setTimeout(() => {
+      setShowPaymentModal(false);
+      setPaymentStatus(null);
+    }, 2000);
+  };
 
   return (
     <section className="section">
@@ -172,62 +235,139 @@ function Sales({ items, cart, loading, onAddToCart, onAddSalesItem }) {
         </div>
       )}
       <aside className="card cart-card">
-        <h3>{t('sales.yourCart')}</h3>
-        <p className="muted">
-          {t(
-            'sales.cartSubtitle',
-            'Direct sales from local farms. Review your basket before confirming.',
+        <div className="cart-header-row">
+          <h3>{t('sales.yourCart')}</h3>
+          {cartCount > 0 && (
+            <span className="pill">
+              {t('sales.itemsInCart', '{{count}} items', { count: cartCount })}
+            </span>
           )}
-        </p>
+        </div>
         {cartCount === 0 ? (
-          <>
-            <p className="muted">{t('sales.cartEmpty')}</p>
-            <ul className="list small mt">
-              <li className="list-item">
-                {t('sales.benefitFresh', 'Fresher produce, directly from farmers')}
-              </li>
-              <li className="list-item">
-                {t('sales.benefitTransparent', 'Transparent pricing with no middlemen')}
-              </li>
-              <li className="list-item">
-                {t('sales.benefitSupport', 'Support your local farming community')}
-              </li>
-            </ul>
-          </>
+          <p className="muted">{t('sales.cartEmpty')}</p>
         ) : (
           <>
-            <div className="cart-summary-row">
-              <span className="pill">
-                {t('sales.itemsInCart', '{{count}} items', { count: cartCount })}
-              </span>
-              {uniqueFarms.length > 0 && (
-                <span className="muted small">
-                  {t(
-                    'sales.fromFarms',
-                    'From {{count}} farm(s)',
-                    { count: uniqueFarms.length },
-                  )}
-                </span>
-              )}
-            </div>
             <ul className="list">
-              {cart.map((item) => (
-                <li key={item.id} className="list-item">
-                  <div>
-                    <div className="list-title">{item.name}</div>
-                    <div className="muted">
-                      {item.farm} • {item.price}
+              {sortedCart.map((item) => {
+                const quantity = quantities[item.id] || 1;
+                const priceNum = item && item.price
+                  ? parseFloat(String(item.price).replace(/[^\d.]/g, '')) || 0
+                  : 0;
+                const lineTotal = priceNum * quantity;
+                return (
+                  <li key={item.id} className="list-item">
+                    <div className="cart-item-main">
+                      <div>
+                        <div className="list-title">{item.name}</div>
+                        <div className="muted small">
+                          {item.farm} • {item.price}
+                        </div>
+                      </div>
+                      <div className="cart-item-line-total">
+                        ₹{lineTotal.toFixed(2)}
+                      </div>
                     </div>
-                  </div>
-                </li>
-              ))}
+                    <div className="cart-item-qty-row">
+                      <button
+                        type="button"
+                        className="small-btn"
+                        onClick={() => updateQuantity(item.id, -1)}
+                      >
+                        -
+                      </button>
+                      <span className="muted small">
+                        {t('sales.quantityLabel', 'Qty')}: {quantity}
+                      </span>
+                      <button
+                        type="button"
+                        className="small-btn"
+                        onClick={() => updateQuantity(item.id, 1)}
+                      >
+                        +
+                      </button>
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
-            <button type="button" className="primary-btn full-width">
+            <div className="cart-footer-summary">
+              <span className="muted">
+                {t('sales.totalLabel', 'Total payable')}:
+              </span>
+              <strong>
+                ₹{computeTotals().total.toFixed(2)}
+              </strong>
+            </div>
+            <button
+              type="button"
+              className="primary-btn full-width"
+              onClick={handleProceedPayment}
+            >
               {t('sales.proceedPayment')}
             </button>
           </>
         )}
       </aside>
+
+      {showPaymentModal && cartCount > 0 && (
+        <Modal
+          title={t('sales.paymentTitle', 'Proceed to payment')}
+          onClose={() => setShowPaymentModal(false)}
+        >
+          <form className="form" onSubmit={handleConfirmPayment}>
+            <p className="muted">
+              {t(
+                'sales.paymentSummaryIntro',
+                'Confirm your direct sales order before continuing to the payment gateway.',
+              )}
+            </p>
+            <ul className="list small mt">
+              {sortedCart.map((item) => {
+                const quantity = quantities[item.id] || 1;
+                return (
+                  <li key={item.id} className="list-item">
+                    <div className="list-title">
+                      {item.name} × {quantity}
+                    </div>
+                    <div className="muted">
+                      {item.farm} • {item.price}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+            <div className="payment-total-row">
+              <span className="muted">
+                {t('sales.totalLabel', 'Estimated total')}:
+              </span>
+              <strong>
+                ₹
+                {computeTotals().total.toFixed(2)}
+              </strong>
+            </div>
+            {paymentStatus === 'success' && (
+              <p className="success-text">
+                {t(
+                  'sales.paymentSuccessDemo',
+                  'Payment simulation successful. Integrate your live payment gateway in the parent component.',
+                )}
+              </p>
+            )}
+            <div className="card-footer-row mt">
+              <button type="submit" className="primary-btn">
+                {t('sales.payNow', 'Pay now (demo / gateway hook)')}
+              </button>
+              <button
+                type="button"
+                className="ghost-btn"
+                onClick={() => setShowPaymentModal(false)}
+              >
+                {t('common.cancel')}
+              </button>
+            </div>
+          </form>
+        </Modal>
+      )}
     </section>
   );
 }

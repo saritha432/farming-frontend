@@ -18,6 +18,7 @@ function Equipment({ items, loading, onAddEquipment, showToast, onRequestEquipme
     const price = form.price.value.trim();
     const location = form.location.value.trim();
     const includesOperator = form.includesOperator.checked;
+    const isNegotiable = form.isNegotiable.checked;
     if (!name || !price) return;
     onAddEquipment({
       name,
@@ -26,6 +27,7 @@ function Equipment({ items, loading, onAddEquipment, showToast, onRequestEquipme
       price,
       location,
       includesOperator,
+      isNegotiable,
     });
     form.reset();
     setShowAddForm(false);
@@ -212,6 +214,10 @@ function Equipment({ items, loading, onAddEquipment, showToast, onRequestEquipme
               <input type="checkbox" name="includesOperator" />
               {t('equipment.operatorLabel')}
             </label>
+            <label className="form-label checkbox-label">
+              <input type="checkbox" name="isNegotiable" />
+              {t('equipment.negotiableLabel', 'Price negotiable')}
+            </label>
             <div className="card-footer-row mt">
               <button type="submit" className="primary-btn">{t('equipment.submitEquipment')}</button>
               <button type="button" className="ghost-btn" onClick={() => setShowAddForm(false)}>
@@ -332,6 +338,11 @@ function Equipment({ items, loading, onAddEquipment, showToast, onRequestEquipme
                       </span>
                     </p>
                     <p className="highlight-text">{item.price}</p>
+                    {mode === 'sell' && item.isNegotiable && (
+                      <p className="muted">
+                        {t('equipment.negotiableShort', 'Price negotiable')}
+                      </p>
+                    )}
                     <p className="muted">
                       {item.includesOperator
                         ? t('equipment.includesOperator')

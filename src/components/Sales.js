@@ -43,6 +43,11 @@ function Sales({ items, cart, loading, onAddToCart, onAddSalesItem }) {
     );
   }
 
+  const cartCount = Array.isArray(cart) ? cart.length : 0;
+  const uniqueFarms = Array.isArray(cart)
+    ? Array.from(new Set(cart.map((item) => item.farm).filter(Boolean)))
+    : [];
+
   return (
     <section className="section">
       <header className="section-header">
@@ -168,10 +173,43 @@ function Sales({ items, cart, loading, onAddToCart, onAddSalesItem }) {
       )}
       <aside className="card cart-card">
         <h3>{t('sales.yourCart')}</h3>
-        {cart.length === 0 ? (
-          <p className="muted">{t('sales.cartEmpty')}</p>
+        <p className="muted">
+          {t(
+            'sales.cartSubtitle',
+            'Direct sales from local farms. Review your basket before confirming.',
+          )}
+        </p>
+        {cartCount === 0 ? (
+          <>
+            <p className="muted">{t('sales.cartEmpty')}</p>
+            <ul className="list small mt">
+              <li className="list-item">
+                {t('sales.benefitFresh', 'Fresher produce, directly from farmers')}
+              </li>
+              <li className="list-item">
+                {t('sales.benefitTransparent', 'Transparent pricing with no middlemen')}
+              </li>
+              <li className="list-item">
+                {t('sales.benefitSupport', 'Support your local farming community')}
+              </li>
+            </ul>
+          </>
         ) : (
           <>
+            <div className="cart-summary-row">
+              <span className="pill">
+                {t('sales.itemsInCart', '{{count}} items', { count: cartCount })}
+              </span>
+              {uniqueFarms.length > 0 && (
+                <span className="muted small">
+                  {t(
+                    'sales.fromFarms',
+                    'From {{count}} farm(s)',
+                    { count: uniqueFarms.length },
+                  )}
+                </span>
+              )}
+            </div>
             <ul className="list">
               {cart.map((item) => (
                 <li key={item.id} className="list-item">

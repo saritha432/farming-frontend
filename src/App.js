@@ -70,6 +70,7 @@ function AppContent() {
   const prevUserRef = useRef(null);
   const [seenInteractions, setSeenInteractions] = useState(0);
   const [followRequests, setFollowRequests] = useState([]);
+  const [feedUserFilter, setFeedUserFilter] = useState(null);
 
   const addToast = useCallback(({ id, message, type }) => {
     setToasts((prev) => [...prev, { id: id || Date.now(), message, type: type || 'info' }]);
@@ -263,6 +264,17 @@ function AppContent() {
 
   const hasFollowRequests = Array.isArray(followRequests) && followRequests.length > 0;
   const hasNotifications = unseenInteractions > 0 || hasFollowRequests;
+
+  const visibleFeedPosts = feedUserFilter
+    ? data.posts.filter((p) => {
+        const farmer = (p.farmer || '').toString();
+        const matchesId = feedUserFilter.id != null && p.userId === feedUserFilter.id;
+        const matchesName =
+          (feedUserFilter.fullName && farmer === feedUserFilter.fullName) ||
+          (feedUserFilter.username && farmer === feedUserFilter.username);
+        return matchesId || matchesName;
+      })
+    : data.posts;
 
   const handleOpenNotifications = () => {
     setActiveTab(TABS.PROFILE);
@@ -612,6 +624,23 @@ function AppContent() {
     rzp.open();
   };
 
+  const handleViewUserPosts = (targetUser) => {
+    if (!targetUser) return;
+    setFeedUserFilter({
+      id: targetUser.id,
+      username: targetUser.username,
+      fullName: targetUser.fullName,
+    });
+    setActiveTab(TABS.FEED);
+    if (typeof window !== 'undefined') {
+      try {
+        window.localStorage.setItem('agrovibes_active_tab', TABS.FEED);
+      } catch {
+        // ignore
+      }
+    }
+  };
+
   // Auth gate: show only signup/login for new visitors (Instagram/FB style)
   if (authLoading) {
     return (
@@ -885,7 +914,7 @@ function AppContent() {
           <div className="ig-feed-column">
             {activeTab === TABS.FEED && (
               <Media
-                posts={data.posts}
+                posts={visibleFeedPosts}
                 loading={loading.feed}
                 refreshPosts={refreshPosts}
                 onDeletePost={handleDeletePost}
@@ -948,13 +977,16 @@ function AppContent() {
               <Learning courses={data.courses} />
             )}
 
-            {activeTab === TABS.COMMUNITY && <Community />}
+            {activeTab === TABS.COMMUNITY && (
+              <Community onViewUser={handleViewUserPosts} />
+            )}
 
             {activeTab === TABS.PROFILE && (
               <Profile
                 posts={data.posts}
                 onOpenLogin={() => setShowLoginModal(true)}
                 onOpenSignup={() => setShowSignupModal(true)}
+                onViewUser={handleViewUserPosts}
               />
             )}
           </div>

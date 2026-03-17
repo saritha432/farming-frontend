@@ -15,7 +15,7 @@ function getUserKey(u) {
 const BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 const mediaUrl = (path) => (path && path.startsWith('/') ? BASE + path : path);
 
-function Profile({ posts = [], onEditProfile, onOpenLogin, onOpenSignup }) {
+function Profile({ posts = [], onEditProfile, onOpenLogin, onOpenSignup, onViewUser }) {
   const { t } = useTranslation();
   const { user, isAuthenticated, refreshUser } = useAuth();
   const [myPosts, setMyPosts] = useState([]);
@@ -367,14 +367,23 @@ function Profile({ posts = [], onEditProfile, onOpenLogin, onOpenSignup }) {
             <ul className="list">
               {followers.map((f) => (
                 <li key={getUserKey(f)} className="list-item">
-                  <div className="list-title">
-                    {f.username || f.fullName || f.email || 'User'}
-                  </div>
-                  {f.fullName && f.email && (
-                    <div className="muted small">
-                      {f.fullName} • {f.email}
+                  <button
+                    type="button"
+                    className="list-item-main-btn"
+                    onClick={() => {
+                      setShowFollowersModal(false);
+                      if (onViewUser) onViewUser(f);
+                    }}
+                  >
+                    <div className="list-title">
+                      {f.username || f.fullName || f.email || 'User'}
                     </div>
-                  )}
+                    {f.fullName && f.email && (
+                      <div className="muted small">
+                        {f.fullName} • {f.email}
+                      </div>
+                    )}
+                  </button>
                 </li>
               ))}
             </ul>
@@ -395,14 +404,23 @@ function Profile({ posts = [], onEditProfile, onOpenLogin, onOpenSignup }) {
             <ul className="list">
               {following.map((f) => (
                 <li key={getUserKey(f)} className="list-item">
-                  <div className="list-title">
-                    {f.username || f.fullName || f.email || 'User'}
-                  </div>
-                  {f.fullName && f.email && (
-                    <div className="muted small">
-                      {f.fullName} • {f.email}
+                  <button
+                    type="button"
+                    className="list-item-main-btn"
+                    onClick={() => {
+                      setShowFollowingModal(false);
+                      if (onViewUser) onViewUser(f);
+                    }}
+                  >
+                    <div className="list-title">
+                      {f.username || f.fullName || f.email || 'User'}
                     </div>
-                  )}
+                    {f.fullName && f.email && (
+                      <div className="muted small">
+                        {f.fullName} • {f.email}
+                      </div>
+                    )}
+                  </button>
                 </li>
               ))}
             </ul>

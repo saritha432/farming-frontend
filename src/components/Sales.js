@@ -48,9 +48,6 @@ function Sales({ items, cart, loading, onAddToCart, onAddSalesItem, onProceedPay
 
   const safeCart = Array.isArray(cart) ? cart : [];
   const cartCount = safeCart.length;
-  const uniqueFarms = cartCount
-    ? Array.from(new Set(safeCart.map((item) => item.farm).filter(Boolean)))
-    : [];
   const sortedCart = [...safeCart].sort((a, b) => {
     const numA = a && a.price ? parseFloat(String(a.price).replace(/[^\d.]/g, '')) || 0 : 0;
     const numB = b && b.price ? parseFloat(String(b.price).replace(/[^\d.]/g, '')) || 0 : 0;

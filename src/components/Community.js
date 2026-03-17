@@ -16,7 +16,7 @@ function Community({ onViewUser }) {
     e.preventDefault();
     setLoading(true);
     try {
-      const list = await api.searchUsers(query.trim(), api.getClientId());
+      const list = await api.searchUsers(query.trim(), user ? user.id : null);
       const enhanced = Array.isArray(list) ? list : [];
       setResults(enhanced);
     } catch {
@@ -37,6 +37,10 @@ function Community({ onViewUser }) {
 
     const fromName =
       user.username || user.fullName || user.email || 'User';
+
+    if (targetUser.isFollowing || targetUser.requestStatus === 'pending') {
+      return;
+    }
 
     api
       .createFollowRequest(toUserId, fromUserId, fromName)
@@ -97,33 +101,33 @@ function Community({ onViewUser }) {
           <ul className="list">
             {results.map((u) => (
               <li key={u.id} className="list-item">
-                <div>
-                  <div className="list-title">
-                    {u.username || u.fullName || u.email || 'User'}
+                <button
+                  type="button"
+                  className="list-item-main-btn"
+                  onClick={() => onViewUser && onViewUser(u)}
+                >
+                  <div className="list-item-main-text">
+                    <div className="list-title">
+                      {u.username || u.fullName || u.email || 'User'}
+                    </div>
+                    <div className="muted">
+                      {u.fullName && u.fullName !== u.username ? u.fullName : null}
+                      {u.fullName && u.email ? ' • ' : ''}
+                      {u.email}
+                    </div>
                   </div>
-                  <div className="muted">
-                    {u.fullName && u.fullName !== u.username ? u.fullName : null}
-                    {u.fullName && u.email ? ' • ' : ''}
-                    {u.email}
-                  </div>
-                </div>
+                </button>
                 <div className="card-footer-row">
-                  <button
-                    type="button"
-                    className="small-btn"
-                    onClick={() => sendFollowRequest(u)}
-                  >
-                    {u.requestStatus === 'pending'
-                      ? t('community.requested', 'Requested')
-                      : t('community.follow', 'Follow')}
-                  </button>
-                  {onViewUser && (
+                  {!u.isFollowing && (
                     <button
                       type="button"
                       className="small-btn"
-                      onClick={() => onViewUser(u)}
+                      onClick={() => sendFollowRequest(u)}
+                      disabled={u.requestStatus === 'pending'}
                     >
-                      {t('community.viewProfile', 'View posts')}
+                      {u.requestStatus === 'pending'
+                        ? t('community.requested', 'Requested')
+                        : t('community.follow', 'Follow')}
                     </button>
                   )}
                 </div>

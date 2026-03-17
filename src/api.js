@@ -200,10 +200,13 @@ export const api = {
     }),
   // Users search & follow – always query the users API.
   // This ensures users without posts can still be found.
-  searchUsers: async (q, clientId) => {
+  // currentUserId is the logged-in user's numeric id (for isFollowing flag).
+  searchUsers: async (q, currentUserId) => {
     const params = [];
     if (q) params.push(`q=${encodeURIComponent(q)}`);
-    if (clientId) params.push(`clientId=${encodeURIComponent(clientId)}`);
+    if (currentUserId != null) {
+      params.push(`currentUserId=${encodeURIComponent(currentUserId)}`);
+    }
     const qs = params.length ? `?${params.join('&')}` : '';
     return request(`/api/users${qs}`);
   },

@@ -132,20 +132,25 @@ function Profile({ posts = [], onEditProfile, onOpenLogin, onOpenSignup, onViewU
     if (!file) return;
     setAvatarUploading(true);
     try {
-      const dataUrl = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = () => reject(new Error('Failed to read file'));
-        reader.readAsDataURL(file);
-      });
-      const next = { avatar: String(dataUrl) };
-      setEditAvatar(String(dataUrl));
-      if (typeof updateUser === 'function') updateUser(next);
-      try {
-        await api.updateProfile(next);
-        await refreshUser();
-      } catch {
-        // ignore backend errors; keep local update
+      // Optimistic preview
+      const objectUrl = URL.createObjectURL(file);
+      const preview = { avatar: objectUrl };
+      setEditAvatar(objectUrl);
+      if (typeof updateUser === 'function') updateUser(preview);
+
+      // Persist to backend (Cloudinary) and then store returned URL
+      if (user && user.id) {
+        const uploaded = await api.uploadAvatar(user.id, file);
+        if (uploaded && uploaded.avatar) {
+          const persisted = { avatar: uploaded.avatar };
+          setEditAvatar(uploaded.avatar);
+          if (typeof updateUser === 'function') updateUser(persisted);
+          try {
+            await refreshUser();
+          } catch {
+            // ignore
+          }
+        }
       }
     } finally {
       setAvatarUploading(false);

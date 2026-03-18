@@ -235,6 +235,21 @@ export const api = {
     request(`/api/users/${userId}/followers`),
   getFollowing: (userId) =>
     request(`/api/users/${userId}/following`),
+  uploadAvatar: (userId, file) => {
+    const formData = new FormData();
+    formData.append('avatar', file);
+    return fetch(`${BASE}/api/users/${userId}/avatar`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: formData,
+    }).then(async (res) => {
+      if (!res.ok) {
+        const text = await res.text().catch(() => '');
+        throw new Error(text || res.statusText || 'Avatar upload failed');
+      }
+      return res.json();
+    });
+  },
 };
 
 export default api;

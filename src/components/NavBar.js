@@ -1,5 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { NavLink } from 'react-router-dom';
 
 const TAB_KEYS = {
   FEED: 'nav.mediaFeed',
@@ -78,6 +79,17 @@ const ICONS = {
 function NavBar({ activeTab, onChangeTab, tabs, isExpanded, onHoverStart, onHoverEnd }) {
   const { t } = useTranslation();
   const navClassName = isExpanded ? 'app-nav app-nav-expanded' : 'app-nav';
+  const PATHS = {
+    FEED: '/feed',
+    KNOWLEDGE: '/knowledge',
+    EQUIPMENT: '/equipment',
+    LABOR: '/labor',
+    PRODUCTS: '/products',
+    SALES: '/sales',
+    LEARNING: '/learning',
+    COMMUNITY: '/community',
+    PROFILE: '/profile',
+  };
   return (
     <nav
       className={navClassName}
@@ -89,16 +101,19 @@ function NavBar({ activeTab, onChangeTab, tabs, isExpanded, onHoverStart, onHove
         const labelKey = TAB_KEYS[value];
         const label = labelKey ? t(labelKey) : value;
         const icon = ICONS[key] || null;
+        const to = PATHS[value] || '/feed';
         return (
-          <button
+          <NavLink
             key={key}
-            type="button"
-            className={activeTab === value ? 'app-nav-btn active' : 'app-nav-btn'}
-            onClick={() => onChangeTab(value)}
+            to={to}
+            className={({ isActive }) => (isActive ? 'app-nav-btn active' : 'app-nav-btn')}
+            onClick={() => {
+              if (typeof onChangeTab === 'function') onChangeTab(value);
+            }}
           >
             {icon}
             <span className="app-nav-label">{label}</span>
-          </button>
+          </NavLink>
         );
       })}
     </nav>

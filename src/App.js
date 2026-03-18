@@ -17,6 +17,7 @@ import LoginModal from './components/LoginModal';
 import SignupModal from './components/SignupModal';
 import AuthGate from './components/AuthGate';
 import { ToastContainer } from './components/Toast';
+import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 
 const TABS = {
   FEED: 'FEED',
@@ -33,23 +34,48 @@ const TABS = {
 function AppContent() {
   const { t, i18n } = useTranslation();
   const { user, loading: authLoading, login, signup, logout } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showSignupModal, setShowSignupModal] = useState(false);
   const [showAuthDropdown, setShowAuthDropdown] = useState(false);
   const authDropdownRef = useRef(null);
-  const [activeTab, setActiveTab] = useState(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const saved = window.localStorage.getItem('agrovibes_active_tab');
-        if (saved && Object.values(TABS).includes(saved)) {
-          return saved;
-        }
-      } catch {
-        // ignore
-      }
-    }
+  const tabFromPath = (pathname) => {
+    const p = (pathname || '').toLowerCase();
+    if (p.startsWith('/knowledge')) return TABS.KNOWLEDGE;
+    if (p.startsWith('/equipment')) return TABS.EQUIPMENT;
+    if (p.startsWith('/labor')) return TABS.LABOR;
+    if (p.startsWith('/products')) return TABS.PRODUCTS;
+    if (p.startsWith('/sales')) return TABS.SALES;
+    if (p.startsWith('/learning')) return TABS.LEARNING;
+    if (p.startsWith('/community')) return TABS.COMMUNITY;
+    if (p.startsWith('/profile')) return TABS.PROFILE;
     return TABS.FEED;
-  });
+  };
+  const pathFromTab = (tab) => {
+    switch (tab) {
+      case TABS.KNOWLEDGE:
+        return '/knowledge';
+      case TABS.EQUIPMENT:
+        return '/equipment';
+      case TABS.LABOR:
+        return '/labor';
+      case TABS.PRODUCTS:
+        return '/products';
+      case TABS.SALES:
+        return '/sales';
+      case TABS.LEARNING:
+        return '/learning';
+      case TABS.COMMUNITY:
+        return '/community';
+      case TABS.PROFILE:
+        return '/profile';
+      case TABS.FEED:
+      default:
+        return '/feed';
+    }
+  };
+  const activeTab = tabFromPath(location.pathname);
   const [cart, setCart] = useState([]);
   const [showCartDropdown, setShowCartDropdown] = useState(false);
   const [apiOnline, setApiOnline] = useState(true);
@@ -82,7 +108,7 @@ function AppContent() {
   // After login/signup, go directly to Media Feed
   useEffect(() => {
     if (user && !prevUserRef.current) {
-      setActiveTab(TABS.FEED);
+      navigate('/feed', { replace: true });
       if (typeof window !== 'undefined') {
         try {
           window.localStorage.setItem('agrovibes_active_tab', TABS.FEED);
@@ -92,7 +118,7 @@ function AppContent() {
       }
     }
     prevUserRef.current = user;
-  }, [user]);
+  }, [user, navigate]);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -205,6 +231,16 @@ function AppContent() {
     };
   }, [activeTab, apiData, setApiData]);
 
+  // Persist current tab for backwards compatibility (non-router clients)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      window.localStorage.setItem('agrovibes_active_tab', activeTab);
+    } catch {
+      // ignore
+    }
+  }, [activeTab]);
+
   const data = {
     posts: Array.isArray(apiData.posts) ? apiData.posts : [],
     guides: Array.isArray(apiData.guides) ? apiData.guides : [],
@@ -277,7 +313,7 @@ function AppContent() {
     : data.posts;
 
   const handleOpenNotifications = () => {
-    setActiveTab(TABS.PROFILE);
+    navigate('/profile');
     try {
       window.localStorage.setItem(
         'agrovibes_seen_interactions',
@@ -632,7 +668,7 @@ function AppContent() {
       fullName: targetUser.fullName,
       avatar: targetUser.avatar || null,
     });
-    setActiveTab(TABS.FEED);
+    navigate('/feed');
     if (typeof window !== 'undefined') {
       try {
         window.localStorage.setItem('agrovibes_active_tab', TABS.FEED);
@@ -710,7 +746,7 @@ function AppContent() {
               type="button"
               aria-label="Home"
               onClick={() => {
-                setActiveTab(TABS.FEED);
+                navigate('/feed');
                 if (typeof window !== 'undefined') {
                   try {
                     window.localStorage.setItem('agrovibes_active_tab', TABS.FEED);
@@ -727,7 +763,7 @@ function AppContent() {
               className="app-header-add-post-btn"
               aria-label={t('media.addPost', 'Add post')}
               onClick={() => {
-                setActiveTab(TABS.FEED);
+                navigate('/feed');
                 setShowAddPostModal(true);
                 if (typeof window !== 'undefined') {
                   try {
@@ -745,7 +781,7 @@ function AppContent() {
               type="button"
               aria-label="Search community"
               onClick={() => {
-                setActiveTab(TABS.COMMUNITY);
+                navigate('/community');
                 if (typeof window !== 'undefined') {
                   try {
                     window.localStorage.setItem('agrovibes_active_tab', TABS.COMMUNITY);
@@ -800,7 +836,7 @@ function AppContent() {
                       type="button"
                       className="auth-dropdown-item"
                       onClick={() => {
-                        setActiveTab(TABS.PROFILE);
+                        navigate('/profile');
                         if (typeof window !== 'undefined') {
                           try {
                             window.localStorage.setItem('agrovibes_active_tab', TABS.PROFILE);
@@ -894,7 +930,6 @@ function AppContent() {
       <NavBar
         activeTab={activeTab}
         onChangeTab={(tab) => {
-          setActiveTab(tab);
           setIsNavExpanded(false);
           if (typeof window !== 'undefined') {
             try {
@@ -913,85 +948,99 @@ function AppContent() {
       <main className="app-main">
         <div className="ig-shell">
           <div className="ig-feed-column">
-            {activeTab === TABS.FEED && (
-              <Media
-                posts={visibleFeedPosts}
-                loading={loading.feed}
-                refreshPosts={refreshPosts}
-                onDeletePost={handleDeletePost}
-                showToast={addToast}
-                t={t}
-                openAddPost={showAddPostModal}
-                onAddPostClose={() => setShowAddPostModal(false)}
-                userFilter={feedUserFilter}
-                onClearUserFilter={() => setFeedUserFilter(null)}
+            <Routes>
+              <Route path="/" element={<Navigate to="/feed" replace />} />
+              <Route
+                path="/feed"
+                element={
+                  <Media
+                    posts={visibleFeedPosts}
+                    loading={loading.feed}
+                    refreshPosts={refreshPosts}
+                    onDeletePost={handleDeletePost}
+                    showToast={addToast}
+                    t={t}
+                    openAddPost={showAddPostModal}
+                    onAddPostClose={() => setShowAddPostModal(false)}
+                    userFilter={feedUserFilter}
+                    onClearUserFilter={() => setFeedUserFilter(null)}
+                  />
+                }
               />
-            )}
-
-            {activeTab === TABS.KNOWLEDGE && (
-              <Knowledge
-                guides={data.guides}
-                loading={loading.knowledge}
-                onAddGuide={handleAddGuide}
-                onUpdateGuide={handleUpdateGuide}
-                onDeleteGuide={handleDeleteGuide}
-                sessions={data.knowledgeSessions}
-                onToggleSubscribe={handleToggleKnowledgeSubscribe}
-                onAskQuestion={handleAskKnowledgeQuestion}
-                onDeleteSession={handleDeleteKnowledgeSession}
-                onUpdateSession={handleUpdateKnowledgeSession}
+              <Route
+                path="/knowledge"
+                element={
+                  <Knowledge
+                    guides={data.guides}
+                    loading={loading.knowledge}
+                    onAddGuide={handleAddGuide}
+                    onUpdateGuide={handleUpdateGuide}
+                    onDeleteGuide={handleDeleteGuide}
+                    sessions={data.knowledgeSessions}
+                    onToggleSubscribe={handleToggleKnowledgeSubscribe}
+                    onAskQuestion={handleAskKnowledgeQuestion}
+                    onDeleteSession={handleDeleteKnowledgeSession}
+                    onUpdateSession={handleUpdateKnowledgeSession}
+                  />
+                }
               />
-            )}
-
-            {activeTab === TABS.EQUIPMENT && (
-              <Equipment
-                items={data.equipment}
-                loading={loading.equipment}
-                onAddEquipment={handleAddEquipment}
-                showToast={addToast}
-                onRequestEquipment={handleRequestEquipment}
+              <Route
+                path="/equipment"
+                element={
+                  <Equipment
+                    items={data.equipment}
+                    loading={loading.equipment}
+                    onAddEquipment={handleAddEquipment}
+                    showToast={addToast}
+                    onRequestEquipment={handleRequestEquipment}
+                  />
+                }
               />
-            )}
-
-            {activeTab === TABS.LABOR && (
-              <Labor
-                laborProfiles={data.workers}
-                jobs={data.jobs}
-                onCreateJob={handleCreateJob}
+              <Route
+                path="/labor"
+                element={
+                  <Labor
+                    laborProfiles={data.workers}
+                    jobs={data.jobs}
+                    onCreateJob={handleCreateJob}
+                  />
+                }
               />
-            )}
-
-            {activeTab === TABS.PRODUCTS && (
-              <Products products={data.products} onAddProduct={handleAddProduct} />
-            )}
-
-            {activeTab === TABS.SALES && (
-              <Sales
-                items={data.salesItems}
-                cart={cart}
-                loading={loading.sales}
-                onAddToCart={handleAddToCart}
-                onAddSalesItem={handleAddSalesItem}
-                onProceedPayment={handleProceedSalesPayment}
+              <Route
+                path="/products"
+                element={<Products products={data.products} onAddProduct={handleAddProduct} />}
               />
-            )}
-
-            {activeTab === TABS.LEARNING && (
-              <Learning courses={data.courses} />
-            )}
-
-            {activeTab === TABS.COMMUNITY && (
-              <Community onViewUser={handleViewUserPosts} />
-            )}
-
-            {activeTab === TABS.PROFILE && (
-              <Profile
-                posts={data.posts}
-                onOpenLogin={() => setShowLoginModal(true)}
-                onOpenSignup={() => setShowSignupModal(true)}
-                onViewUser={handleViewUserPosts}
+              <Route
+                path="/sales"
+                element={
+                  <Sales
+                    items={data.salesItems}
+                    cart={cart}
+                    loading={loading.sales}
+                    onAddToCart={handleAddToCart}
+                    onAddSalesItem={handleAddSalesItem}
+                    onProceedPayment={handleProceedSalesPayment}
+                  />
+                }
               />
-            )}
+              <Route path="/learning" element={<Learning courses={data.courses} />} />
+              <Route
+                path="/community"
+                element={<Community onViewUser={handleViewUserPosts} />}
+              />
+              <Route
+                path="/profile"
+                element={
+                  <Profile
+                    posts={data.posts}
+                    onOpenLogin={() => setShowLoginModal(true)}
+                    onOpenSignup={() => setShowSignupModal(true)}
+                    onViewUser={handleViewUserPosts}
+                  />
+                }
+              />
+              <Route path="*" element={<Navigate to="/feed" replace />} />
+            </Routes>
           </div>
         </div>
       </main>

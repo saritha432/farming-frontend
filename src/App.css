@@ -1601,6 +1601,66 @@ body {
   margin-right: auto;
 }
 
+/* Edit profile modal (clean, Instagram-inspired) */
+.edit-profile-form {
+  gap: 1rem;
+}
+
+.edit-profile-top {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.25rem 0;
+}
+
+.edit-profile-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  flex-shrink: 0;
+}
+
+.edit-profile-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.edit-profile-avatar-initial {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: #111827;
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(21, 128, 61, 0.2));
+}
+
+.edit-profile-username {
+  font-weight: 600;
+  color: #111827;
+}
+
+.edit-profile-section {
+  border-top: 1px solid #e5e7eb;
+  padding-top: 1rem;
+}
+
+.edit-profile-section-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 0.5rem;
+}
+
+.edit-profile-hint {
+  margin-top: 0.35rem;
+}
+
 .profile-gate {
   padding: 2.5rem 1.5rem;
 }

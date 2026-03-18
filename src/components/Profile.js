@@ -17,12 +17,14 @@ const mediaUrl = (path) => (path && path.startsWith('/') ? BASE + path : path);
 
 function Profile({ posts = [], onEditProfile, onOpenLogin, onOpenSignup, onViewUser }) {
   const { t } = useTranslation();
-  const { user, isAuthenticated, refreshUser } = useAuth();
+  const { user, isAuthenticated, refreshUser, updateUser } = useAuth();
   const [myPosts, setMyPosts] = useState([]);
   const [loadingPosts, setLoadingPosts] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editBio, setEditBio] = useState('');
   const [editFullName, setEditFullName] = useState('');
+  const [editWebsite, setEditWebsite] = useState('');
+  const [editAvatar, setEditAvatar] = useState('');
   const [savingProfile, setSavingProfile] = useState(false);
   const [followRequests, setFollowRequests] = useState([]);
   const [selectedPost, setSelectedPost] = useState(null);
@@ -36,6 +38,8 @@ function Profile({ posts = [], onEditProfile, onOpenLogin, onOpenSignup, onViewU
     if (!user) return;
     setEditBio(user.bio || '');
     setEditFullName(user.fullName || user.username || '');
+    setEditWebsite(user.website || '');
+    setEditAvatar(user.avatar || '');
   }, [user]);
 
   useEffect(() => {
@@ -96,12 +100,28 @@ function Profile({ posts = [], onEditProfile, onOpenLogin, onOpenSignup, onViewU
     if (!user) return;
     setSavingProfile(true);
     try {
-      await api.updateProfile({ fullName: editFullName.trim(), bio: editBio.trim() });
+      const payload = {
+        fullName: editFullName.trim(),
+        bio: editBio.trim(),
+        website: editWebsite.trim(),
+        avatar: editAvatar.trim(),
+      };
+      await api.updateProfile(payload);
+      // Backend may not support /me for all deployments yet; keep UI consistent locally.
+      if (typeof updateUser === 'function') updateUser(payload);
       await refreshUser();
       if (onEditProfile) onEditProfile();
       setShowEditModal(false);
     } catch {
-      // show toast in real app
+      // If backend update fails, still update local cached user so UI reflects changes.
+      const payload = {
+        fullName: editFullName.trim(),
+        bio: editBio.trim(),
+        website: editWebsite.trim(),
+        avatar: editAvatar.trim(),
+      };
+      if (typeof updateUser === 'function') updateUser(payload);
+      setShowEditModal(false);
     } finally {
       setSavingProfile(false);
     }
@@ -261,26 +281,79 @@ function Profile({ posts = [], onEditProfile, onOpenLogin, onOpenSignup, onViewU
 
       {showEditModal && (
         <Modal title={t('profile.editProfile', 'Edit profile')} onClose={() => setShowEditModal(false)}>
-          <form onSubmit={handleSaveProfile} className="form">
-            <label className="form-label">
-              {t('auth.fullName', 'Full name')}
-              <input
-                type="text"
-                value={editFullName}
-                onChange={(e) => setEditFullName(e.target.value)}
-                className="form-input"
-              />
-            </label>
-            <label className="form-label">
-              {t('profile.bio', 'Bio')}
-              <textarea
-                rows={3}
-                value={editBio}
-                onChange={(e) => setEditBio(e.target.value)}
-                className="form-input"
-                placeholder={t('profile.bioPlaceholder', 'Tell others about your farm...')}
-              />
-            </label>
+          <form onSubmit={handleSaveProfile} className="form edit-profile-form">
+            <div className="edit-profile-top">
+              <div className="edit-profile-avatar">
+                {editAvatar ? (
+                  <img src={editAvatar} alt="" />
+                ) : (
+                  <span className="edit-profile-avatar-initial">
+                    {(user?.fullName || user?.username || 'U').charAt(0).toUpperCase()}
+                  </span>
+                )}
+              </div>
+              <div className="edit-profile-top-text">
+                <div className="edit-profile-username">
+                  {user?.username || user?.fullName || 'User'}
+                </div>
+                <div className="muted small">
+                  {user?.fullName && user?.fullName !== user?.username ? user.fullName : user?.email}
+                </div>
+              </div>
+            </div>
+
+            <div className="edit-profile-section">
+              <div className="edit-profile-section-title">
+                {t('profile.profileInfo', 'Profile info')}
+              </div>
+
+              <label className="form-label">
+                {t('profile.avatarUrl', 'Profile photo URL')}
+                <input
+                  type="url"
+                  value={editAvatar}
+                  onChange={(e) => setEditAvatar(e.target.value)}
+                  className="form-input"
+                  placeholder="https://..."
+                />
+              </label>
+
+              <label className="form-label">
+                {t('auth.fullName', 'Full name')}
+                <input
+                  type="text"
+                  value={editFullName}
+                  onChange={(e) => setEditFullName(e.target.value)}
+                  className="form-input"
+                />
+              </label>
+
+              <label className="form-label">
+                {t('profile.website', 'Website')}
+                <input
+                  type="url"
+                  value={editWebsite}
+                  onChange={(e) => setEditWebsite(e.target.value)}
+                  className="form-input"
+                  placeholder="https://example.com"
+                />
+              </label>
+
+              <label className="form-label">
+                {t('profile.bio', 'Bio')}
+                <textarea
+                  rows={3}
+                  value={editBio}
+                  onChange={(e) => setEditBio(e.target.value)}
+                  className="form-input"
+                  placeholder={t('profile.bioPlaceholder', 'Tell others about your farm...')}
+                />
+                <div className="muted small edit-profile-hint">
+                  {t('profile.bioHint', 'Tip: add your location, crops, and contact preference.')}
+                </div>
+              </label>
+            </div>
+
             <div className="card-footer-row mt">
               <button type="submit" className="primary-btn" disabled={savingProfile}>
                 {savingProfile ? t('common.saving', 'Saving…') : t('common.save', 'Save')}

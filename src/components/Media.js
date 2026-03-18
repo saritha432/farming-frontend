@@ -6,7 +6,18 @@ import Modal from './Modal';
 
 const BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
-function Media({ posts = [], loading, refreshPosts, onDeletePost, showToast, t: tProp, openAddPost, onAddPostClose }) {
+function Media({
+  posts = [],
+  loading,
+  refreshPosts,
+  onDeletePost,
+  showToast,
+  t: tProp,
+  openAddPost,
+  onAddPostClose,
+  userFilter,
+  onClearUserFilter,
+}) {
   const { t } = useTranslation();
   const tFn = tProp || t;
   const [showAddForm, setShowAddForm] = useState(false);
@@ -152,6 +163,37 @@ function Media({ posts = [], loading, refreshPosts, onDeletePost, showToast, t: 
           <p className="muted">{t('media.description')}</p>
         </div>
       </header>
+
+      {userFilter && (
+        <div className="card profile-quick-banner">
+          <div className="profile-quick-left">
+            <div className="list-avatar">
+              {userFilter.avatar ? (
+                <img src={userFilter.avatar} alt="" />
+              ) : (
+                <span className="list-avatar-initial">
+                  {(userFilter.username || userFilter.fullName || 'U').charAt(0).toUpperCase()}
+                </span>
+              )}
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <div className="list-title">
+                {userFilter.username || userFilter.fullName || 'User'}
+              </div>
+              {userFilter.fullName && userFilter.fullName !== userFilter.username && (
+                <div className="muted small">{userFilter.fullName}</div>
+              )}
+            </div>
+          </div>
+          <button
+            type="button"
+            className="small-btn"
+            onClick={() => onClearUserFilter && onClearUserFilter()}
+          >
+            {t('common.back', 'Back')}
+          </button>
+        </div>
+      )}
 
       {showAddForm && (
         <Modal

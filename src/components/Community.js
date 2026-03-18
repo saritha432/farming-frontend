@@ -106,6 +106,15 @@ function Community({ onViewUser }) {
                   className="list-item-main-btn"
                   onClick={() => onViewUser && onViewUser(u)}
                 >
+                  <div className="list-avatar">
+                    {u.avatar ? (
+                      <img src={u.avatar} alt="" />
+                    ) : (
+                      <span className="list-avatar-initial">
+                        {(u.username || u.fullName || 'U').charAt(0).toUpperCase()}
+                      </span>
+                    )}
+                  </div>
                   <div className="list-item-main-text">
                     <div className="list-title">
                       {u.username || u.fullName || u.email || 'User'}

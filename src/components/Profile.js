@@ -351,17 +351,6 @@ function Profile({ posts = [], onEditProfile, onOpenLogin, onOpenSignup, onViewU
               </div>
 
               <label className="form-label">
-                {t('profile.avatarUrl', 'Profile photo URL')}
-                <input
-                  type="url"
-                  value={editAvatar}
-                  onChange={(e) => setEditAvatar(e.target.value)}
-                  className="form-input"
-                  placeholder="https://..."
-                />
-              </label>
-
-              <label className="form-label">
                 {t('auth.fullName', 'Full name')}
                 <input
                   type="text"
@@ -491,6 +480,15 @@ function Profile({ posts = [], onEditProfile, onOpenLogin, onOpenSignup, onViewU
                       if (onViewUser) onViewUser(f);
                     }}
                   >
+                    <div className="list-avatar">
+                      {f.avatar ? (
+                        <img src={f.avatar} alt="" />
+                      ) : (
+                        <span className="list-avatar-initial">
+                          {(f.username || f.fullName || 'U').charAt(0).toUpperCase()}
+                        </span>
+                      )}
+                    </div>
                     <div className="list-title">
                       {f.username || f.fullName || f.email || 'User'}
                     </div>
@@ -528,6 +526,15 @@ function Profile({ posts = [], onEditProfile, onOpenLogin, onOpenSignup, onViewU
                       if (onViewUser) onViewUser(f);
                     }}
                   >
+                    <div className="list-avatar">
+                      {f.avatar ? (
+                        <img src={f.avatar} alt="" />
+                      ) : (
+                        <span className="list-avatar-initial">
+                          {(f.username || f.fullName || 'U').charAt(0).toUpperCase()}
+                        </span>
+                      )}
+                    </div>
                     <div className="list-title">
                       {f.username || f.fullName || f.email || 'User'}
                     </div>

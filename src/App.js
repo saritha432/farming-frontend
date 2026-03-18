@@ -630,6 +630,7 @@ function AppContent() {
       id: targetUser.id,
       username: targetUser.username,
       fullName: targetUser.fullName,
+      avatar: targetUser.avatar || null,
     });
     setActiveTab(TABS.FEED);
     if (typeof window !== 'undefined') {
@@ -922,6 +923,8 @@ function AppContent() {
                 t={t}
                 openAddPost={showAddPostModal}
                 onAddPostClose={() => setShowAddPostModal(false)}
+                userFilter={feedUserFilter}
+                onClearUserFilter={() => setFeedUserFilter(null)}
               />
             )}
 

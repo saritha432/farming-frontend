@@ -1661,6 +1661,59 @@ body {
   margin-top: 0.35rem;
 }
 
+/* Shared list avatar (community + followers/following) */
+.list-item-main-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  color: inherit;
+}
+
+.list-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+}
+
+.list-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.list-avatar-initial {
+  font-weight: 700;
+  color: #111827;
+}
+
+.profile-quick-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.9rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.profile-quick-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
 .profile-gate {
   padding: 2.5rem 1.5rem;
 }

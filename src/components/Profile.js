@@ -33,6 +33,7 @@ function Profile({ posts = [], onEditProfile, onOpenLogin, onOpenSignup, onViewU
   const [following, setFollowing] = useState([]);
   const [showFollowersModal, setShowFollowersModal] = useState(false);
   const [showFollowingModal, setShowFollowingModal] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -127,6 +128,30 @@ function Profile({ posts = [], onEditProfile, onOpenLogin, onOpenSignup, onViewU
     }
   };
 
+  const handleAvatarFile = async (file) => {
+    if (!file) return;
+    setAvatarUploading(true);
+    try {
+      const dataUrl = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(new Error('Failed to read file'));
+        reader.readAsDataURL(file);
+      });
+      const next = { avatar: String(dataUrl) };
+      setEditAvatar(String(dataUrl));
+      if (typeof updateUser === 'function') updateUser(next);
+      try {
+        await api.updateProfile(next);
+        await refreshUser();
+      } catch {
+        // ignore backend errors; keep local update
+      }
+    } finally {
+      setAvatarUploading(false);
+    }
+  };
+
   if (!isAuthenticated || !user) {
     return (
       <section className="section profile-section">
@@ -197,6 +222,19 @@ function Profile({ posts = [], onEditProfile, onOpenLogin, onOpenSignup, onViewU
               <span className="profile-avatar-initial">{(user.fullName || user.username || 'U').charAt(0).toUpperCase()}</span>
             )}
           </div>
+          <label className="profile-avatar-upload" title={t('profile.changePhoto', 'Change photo')}>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                const file = e.target.files && e.target.files[0];
+                e.target.value = '';
+                handleAvatarFile(file);
+              }}
+              disabled={avatarUploading}
+            />
+            <span aria-hidden="true">📷</span>
+          </label>
         </div>
         <div className="profile-info">
           <h1 className="profile-username">{user.username || user.fullName}</h1>

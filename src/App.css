@@ -1788,6 +1788,28 @@ body {
   transform: translateY(-1px);
 }
 
+/* Fertilizers tool UI */
+.fertilizers-tooling {
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+}
+
+.fertilizers-grid {
+  grid-template-columns: 1.05fr 1fr 0.95fr;
+  gap: 0.9rem;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .fertilizers-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.dose-estimate .highlight-text {
+  font-size: 1.05rem;
+}
+
 .profile-info {
   flex: 1;
   min-width: 0;

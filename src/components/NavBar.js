@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { NavLink } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const TAB_KEYS = {
   FEED: 'nav.mediaFeed',
@@ -78,6 +78,8 @@ const ICONS = {
 
 function NavBar({ activeTab, onChangeTab, tabs, isExpanded, onHoverStart, onHoverEnd }) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const location = useLocation();
   const navClassName = isExpanded ? 'app-nav app-nav-expanded' : 'app-nav';
   const PATHS = {
     FEED: '/feed',
@@ -102,18 +104,22 @@ function NavBar({ activeTab, onChangeTab, tabs, isExpanded, onHoverStart, onHove
         const label = labelKey ? t(labelKey) : value;
         const icon = ICONS[key] || null;
         const to = PATHS[value] || '/feed';
+        const isActive =
+          location.pathname === to ||
+          (to !== '/feed' && location.pathname.startsWith(`${to}/`));
         return (
-          <NavLink
+          <button
             key={key}
-            to={to}
-            className={({ isActive }) => (isActive ? 'app-nav-btn active' : 'app-nav-btn')}
+            type="button"
+            className={isActive ? 'app-nav-btn active' : 'app-nav-btn'}
             onClick={() => {
+              navigate(to);
               if (typeof onChangeTab === 'function') onChangeTab(value);
             }}
           >
             {icon}
             <span className="app-nav-label">{label}</span>
-          </NavLink>
+          </button>
         );
       })}
     </nav>

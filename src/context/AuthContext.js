@@ -144,7 +144,12 @@ export function AuthProvider({ children }) {
   }, []);
 
   const updateUser = useCallback((updates) => {
-    setUser((prev) => (prev ? { ...prev, ...updates } : null));
+    setUser((prev) => {
+      if (!prev) return null;
+      const next = { ...prev, ...updates };
+      if (next.id) writeCachedUser(next);
+      return next;
+    });
   }, []);
 
   const refreshUser = useCallback(async () => {

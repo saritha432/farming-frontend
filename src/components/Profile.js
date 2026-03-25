@@ -101,11 +101,14 @@ function Profile({ posts = [], onEditProfile, onOpenLogin, onOpenSignup, onViewU
     if (!user) return;
     setSavingProfile(true);
     try {
+      const avatarVal = editAvatar.trim();
+      const avatarForApi =
+        avatarVal.startsWith('blob:') ? user.avatar || '' : avatarVal;
       const payload = {
         fullName: editFullName.trim(),
         bio: editBio.trim(),
         website: editWebsite.trim(),
-        avatar: editAvatar.trim(),
+        avatar: avatarForApi,
       };
       await api.updateProfile(payload);
       // Backend may not support /me for all deployments yet; keep UI consistent locally.
@@ -115,11 +118,14 @@ function Profile({ posts = [], onEditProfile, onOpenLogin, onOpenSignup, onViewU
       setShowEditModal(false);
     } catch {
       // If backend update fails, still update local cached user so UI reflects changes.
+      const avatarVal = editAvatar.trim();
+      const avatarForApi =
+        avatarVal.startsWith('blob:') ? user.avatar || '' : avatarVal;
       const payload = {
         fullName: editFullName.trim(),
         bio: editBio.trim(),
         website: editWebsite.trim(),
-        avatar: editAvatar.trim(),
+        avatar: avatarForApi,
       };
       if (typeof updateUser === 'function') updateUser(payload);
       setShowEditModal(false);
@@ -130,28 +136,44 @@ function Profile({ posts = [], onEditProfile, onOpenLogin, onOpenSignup, onViewU
 
   const handleAvatarFile = async (file) => {
     if (!file) return;
+    const prevAvatar = user?.avatar || '';
+    let objectUrl = null;
     setAvatarUploading(true);
     try {
-      // Optimistic preview
-      const objectUrl = URL.createObjectURL(file);
-      const preview = { avatar: objectUrl };
+      objectUrl = URL.createObjectURL(file);
       setEditAvatar(objectUrl);
-      if (typeof updateUser === 'function') updateUser(preview);
+      updateUser({ avatar: objectUrl });
 
-      // Persist to backend (Cloudinary) and then store returned URL
-      if (user && user.id) {
-        const uploaded = await api.uploadAvatar(user.id, file);
-        if (uploaded && uploaded.avatar) {
-          const persisted = { avatar: uploaded.avatar };
-          setEditAvatar(uploaded.avatar);
-          if (typeof updateUser === 'function') updateUser(persisted);
-          try {
-            await refreshUser();
-          } catch {
-            // ignore
-          }
+      if (!user?.id) return;
+
+      let uploaded;
+      try {
+        uploaded = await api.uploadAvatar(user.id, file);
+      } catch {
+        const dataUri = await new Promise((resolve, reject) => {
+          const r = new FileReader();
+          r.onload = () => resolve(r.result);
+          r.onerror = () => reject(new Error('read failed'));
+          r.readAsDataURL(file);
+        });
+        uploaded = await api.uploadAvatarDataUri(user.id, dataUri);
+      }
+
+      if (uploaded?.avatar) {
+        if (objectUrl) URL.revokeObjectURL(objectUrl);
+        objectUrl = null;
+        setEditAvatar(uploaded.avatar);
+        updateUser({ avatar: uploaded.avatar });
+        try {
+          await refreshUser();
+        } catch {
+          // refresh is optional when no JWT; cache was already updated
         }
       }
+    } catch {
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+      setEditAvatar(prevAvatar);
+      updateUser({ avatar: prevAvatar });
     } finally {
       setAvatarUploading(false);
     }

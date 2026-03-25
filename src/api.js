@@ -250,6 +250,12 @@ export const api = {
       return res.json();
     });
   },
+  /** If multipart fails (e.g. odd camera mimetype), same endpoint accepts JSON with data URI. */
+  uploadAvatarDataUri: (userId, dataUri) =>
+    request(`/api/users/${userId}/avatar`, {
+      method: 'POST',
+      body: JSON.stringify({ avatar: dataUri }),
+    }),
 };
 
 export default api;

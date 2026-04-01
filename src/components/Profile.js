@@ -142,7 +142,6 @@ function Profile({ posts = [], onEditProfile, onOpenLogin, onOpenSignup, onViewU
     try {
       objectUrl = URL.createObjectURL(file);
       setEditAvatar(objectUrl);
-      updateUser({ avatar: objectUrl });
 
       if (!user?.id) return;
 

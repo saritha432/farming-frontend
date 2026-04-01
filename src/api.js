@@ -147,6 +147,13 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(body),
     }),
+  getEquipmentRequests: (params = {}) => {
+    const qs = new URLSearchParams();
+    if (params.phone) qs.set('phone', String(params.phone));
+    if (params.equipmentId != null) qs.set('equipmentId', String(params.equipmentId));
+    const q = qs.toString();
+    return request(`/api/equipment/requests${q ? `?${q}` : ''}`);
+  },
   postSalesItem: (body) => request('/api/sales', { method: 'POST', body: JSON.stringify(body) }),
   postGuide: (body) => {
     // Support both JSON body and FormData (for file uploads)

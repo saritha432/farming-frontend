@@ -568,6 +568,196 @@ body {
   margin-top: 0.25rem;
 }
 
+.equipment-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin: 0.75rem 0 1rem;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 999px;
+  padding: 0.35rem;
+  width: fit-content;
+}
+
+.equipment-tab {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 0.45rem 0.9rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  color: #475569;
+}
+
+.equipment-tab.active {
+  background: rgba(34, 197, 94, 0.18);
+  color: #166534;
+  font-weight: 600;
+}
+
+.equipment-search-card {
+  padding: 1rem;
+}
+
+.equipment-search-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  align-items: end;
+}
+
+.equipment-search-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  margin-top: 0.75rem;
+}
+
+.equipment-results-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.9rem;
+  margin-top: 1rem;
+}
+
+.equipment-result-card {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 1rem;
+  padding: 0.9rem;
+  align-items: stretch;
+}
+
+.equipment-result-media {
+  border-radius: 0.9rem;
+  overflow: hidden;
+  background: linear-gradient(135deg, rgba(22, 101, 52, 0.16), rgba(34, 197, 94, 0.18));
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  display: grid;
+  place-items: center;
+}
+
+.equipment-result-media-img {
+  width: 100%;
+  height: 100%;
+  background:
+    radial-gradient(circle at 30% 35%, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0) 55%),
+    linear-gradient(135deg, rgba(34, 197, 94, 0.25), rgba(21, 128, 61, 0.35)),
+    linear-gradient(180deg, rgba(15, 23, 42, 0.08), rgba(15, 23, 42, 0));
+}
+
+.equipment-result-body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.equipment-result-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.equipment-result-title {
+  font-weight: 700;
+  color: #0f172a;
+  font-size: 1.05rem;
+  line-height: 1.2;
+}
+
+.equipment-result-sub {
+  margin-top: 0.25rem;
+  font-size: 0.88rem;
+}
+
+.equipment-result-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.equipment-result-price {
+  margin-top: 0.5rem;
+  font-weight: 700;
+  color: #166534;
+  font-size: 1.05rem;
+}
+
+.equipment-result-foot {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding-top: 0.75rem;
+}
+
+.equipment-book-btn {
+  padding: 0.45rem 1rem;
+}
+
+.equipment-bookings-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+.equipment-bookings-card {
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 0.9rem;
+  padding: 0.85rem 0.95rem;
+}
+
+.equipment-bookings-card-title {
+  font-size: 0.8rem;
+  color: #64748b;
+  margin-bottom: 0.25rem;
+}
+
+.equipment-bookings-card-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.equipment-bookings-actions {
+  display: flex;
+  gap: 0.6rem;
+  margin: 0.85rem 0 0.25rem;
+  justify-content: flex-end;
+}
+
+.equipment-bookings-list {
+  margin-top: 0.75rem;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+
+.equipment-booking-row {
+  padding: 0.9rem 1rem;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.equipment-booking-title {
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.equipment-booking-status {
+  background: #eef2ff;
+  color: #3730a3;
+  font-weight: 600;
+}
+
 .grid.two {
   grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
 }
@@ -1804,6 +1994,18 @@ body {
   .fertilizers-grid {
     grid-template-columns: 1fr;
   }
+
+  .equipment-search-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .equipment-result-card {
+    grid-template-columns: 1fr;
+  }
+
+  .equipment-result-media {
+    height: 170px;
+  }
 }
 
 .dose-estimate .highlight-text {
@@ -1873,6 +2075,10 @@ body {
   aspect-ratio: 1;
   overflow: hidden;
   background: #e5e7eb;
+  border: none;
+  padding: 0;
+  display: block;
+  cursor: pointer;
 }
 
 .profile-grid-item img,

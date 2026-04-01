@@ -3,8 +3,23 @@ import { useTranslation } from 'react-i18next';
 import { api } from '../api';
 import { useAuth } from '../context/AuthContext';
 import Modal from './Modal';
+import { putPendingPostFile, getPendingPostFile, deletePendingPostFile } from '../uploadPostIdb';
 
 const BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+const PENDING_POST_UPLOAD_KEY = 'agrovibes_pending_post_upload_v1';
+
+function makeClientUploadId() {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
+  return `up_${Math.random().toString(36).slice(2)}_${Date.now()}`;
+}
+
+function safeJsonParse(v) {
+  try {
+    return JSON.parse(v);
+  } catch {
+    return null;
+  }
+}
 
 function Media({
   posts = [],
@@ -22,11 +37,77 @@ function Media({
   const tFn = tProp || t;
   const [showAddForm, setShowAddForm] = useState(false);
   const { user } = useAuth();
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     if (openAddPost) setShowAddForm(true);
   }, [openAddPost]);
-  const [uploading, setUploading] = useState(false);
+
+  // If the user refreshed during a post upload, resume it on next mount.
+  useEffect(() => {
+    let mounted = true;
+    const resume = async () => {
+      const pendingRaw = (() => {
+        try {
+          return localStorage.getItem(PENDING_POST_UPLOAD_KEY);
+        } catch {
+          return null;
+        }
+      })();
+      const pending = safeJsonParse(pendingRaw);
+      if (!mounted || !pending?.clientUploadId || !pending?.fields) return;
+      if (!pending?.hasMedia) return;
+
+      const { clientUploadId, fields, file } = pending;
+
+      try {
+        setUploading(true);
+        const mediaBlob = await getPendingPostFile(clientUploadId);
+        if (!mediaBlob) {
+          // Stale pending record (e.g. IndexedDB was cleared). Remove it to avoid retry loops.
+          try {
+            localStorage.removeItem(PENDING_POST_UPLOAD_KEY);
+          } catch {
+            // ignore
+          }
+          return;
+        }
+
+        const formData = new FormData();
+        formData.append('farmer', fields.farmer || 'My Farm');
+        formData.append('location', fields.location || '');
+        formData.append('type', fields.type || 'Photo');
+        formData.append('title', fields.title || '');
+        formData.append('description', fields.description || '');
+        if (fields.tagsStr) formData.append('tags', fields.tagsStr);
+        formData.append('clientUploadId', clientUploadId);
+        formData.append('media', mediaBlob, file?.name || 'upload');
+
+        await api.createPost(formData);
+
+        // Clear pending state only after successful server response.
+        try {
+          localStorage.removeItem(PENDING_POST_UPLOAD_KEY);
+        } catch {
+          // ignore
+        }
+        await deletePendingPostFile(clientUploadId);
+        if (!mounted) return;
+        refreshPosts?.();
+        if (showToast) showToast({ message: tFn('toast.postCreated'), type: 'success' });
+      } catch (err) {
+        // Keep pending so the user can retry on another refresh.
+        console.error('Failed to resume pending upload:', err);
+      } finally {
+        if (mounted) setUploading(false);
+      }
+    };
+
+    resume();
+    return () => {
+      mounted = false;
+    };
+  }, [refreshPosts, showToast, tFn]);
   const [titleError, setTitleError] = useState('');
   const [expandedComments, setExpandedComments] = useState({});
   const [commentsLoading, setCommentsLoading] = useState({});
@@ -55,6 +136,9 @@ function Media({
     const description = form.description?.value?.trim() || '';
     const tagsStr = form.tags?.value?.trim() || '';
     const fileInput = form.media;
+    const selectedFile = fileInput?.files?.[0] || null;
+    const clientUploadId = selectedFile ? makeClientUploadId() : null;
+
     setUploading(true);
     try {
       const formData = new FormData();
@@ -64,8 +148,56 @@ function Media({
       formData.append('title', title);
       formData.append('description', description);
       if (tagsStr) formData.append('tags', tagsStr);
-      if (fileInput?.files?.[0]) formData.append('media', fileInput.files[0]);
+      if (selectedFile) {
+        formData.append('clientUploadId', clientUploadId);
+        // Persist file + metadata so an immediate refresh can resume the upload.
+        const pending = {
+          clientUploadId,
+          hasMedia: true,
+          fields: {
+            farmer,
+            location,
+            type,
+            title,
+            description,
+            tagsStr,
+          },
+          file: { name: selectedFile.name, type: selectedFile.type, size: selectedFile.size },
+          createdAt: Date.now(),
+        };
+        try {
+          localStorage.setItem(PENDING_POST_UPLOAD_KEY, JSON.stringify(pending));
+        } catch {
+          // ignore; resume will just not work in this case
+        }
+        try {
+          await putPendingPostFile(clientUploadId, selectedFile);
+        } catch (err) {
+          console.error('Failed to persist pending post file (upload will still proceed):', err);
+          try {
+            localStorage.removeItem(PENDING_POST_UPLOAD_KEY);
+          } catch {
+            // ignore
+          }
+        }
+        formData.append('media', selectedFile, selectedFile.name);
+      }
       await api.createPost(formData);
+
+      // Upload finished: clear pending state so a refresh doesn't re-trigger it.
+      if (selectedFile && clientUploadId) {
+        try {
+          localStorage.removeItem(PENDING_POST_UPLOAD_KEY);
+        } catch {
+          // ignore
+        }
+        try {
+          await deletePendingPostFile(clientUploadId);
+        } catch (err) {
+          console.error('Failed clearing pending post file:', err);
+        }
+      }
+
       form.reset();
       setShowAddForm(false);
       onAddPostClose?.();

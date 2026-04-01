@@ -52,29 +52,7 @@ function AppContent() {
     if (p.startsWith('/profile')) return TABS.PROFILE;
     return TABS.FEED;
   };
-  const pathFromTab = (tab) => {
-    switch (tab) {
-      case TABS.KNOWLEDGE:
-        return '/knowledge';
-      case TABS.EQUIPMENT:
-        return '/equipment';
-      case TABS.LABOR:
-        return '/labor';
-      case TABS.PRODUCTS:
-        return '/products';
-      case TABS.SALES:
-        return '/sales';
-      case TABS.LEARNING:
-        return '/learning';
-      case TABS.COMMUNITY:
-        return '/community';
-      case TABS.PROFILE:
-        return '/profile';
-      case TABS.FEED:
-      default:
-        return '/feed';
-    }
-  };
+
   const activeTab = tabFromPath(location.pathname);
   const [cart, setCart] = useState([]);
   const [showCartDropdown, setShowCartDropdown] = useState(false);

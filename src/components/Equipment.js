@@ -758,11 +758,23 @@ function Equipment({ items, loading, onAddEquipment, showToast, onRequestEquipme
                 }
                 const modeLabel = (item.modeKey || item.mode || '').toString();
                 const mode = modeLabel.toLowerCase();
+                const providerName =
+                  (item.providerName || item.ownerName || item.farmerName || '').toString().trim();
+                const phone = (item.phone || item.mobile || '').toString().trim();
+                const ops = Array.isArray(item.operations)
+                  ? item.operations
+                  : typeof item.operations === 'string'
+                    ? item.operations.split(',').map((s) => s.trim()).filter(Boolean)
+                    : [];
 
                 return (
                   <article key={key} className="card equipment-result-card">
                     <div className="equipment-result-media" aria-hidden>
-                      <div className="equipment-result-media-img" />
+                      {item.imageUrl ? (
+                        <img className="equipment-result-img" src={item.imageUrl} alt="" />
+                      ) : (
+                        <div className="equipment-result-media-img" />
+                      )}
                     </div>
                     <div className="equipment-result-body">
                       <div className="equipment-result-top">
@@ -771,9 +783,25 @@ function Equipment({ items, loading, onAddEquipment, showToast, onRequestEquipme
                           {statusLabel}
                         </span>
                       </div>
+                      {(providerName || phone) && (
+                        <div className="equipment-result-provider">
+                          {providerName && <div className="equipment-provider-name">{providerName}</div>}
+                          {phone && (
+                            <a className="equipment-provider-phone" href={`tel:${phone}`}>
+                              {phone}
+                            </a>
+                          )}
+                        </div>
+                      )}
                       <div className="equipment-result-sub muted">
                         {item.location || t('equipment.locationUnknown', 'Location not set')}
                       </div>
+                      {ops.length > 0 && (
+                        <div className="equipment-result-ops muted small">
+                          <span className="equipment-ops-label">{t('equipment.operations', 'Operations')}</span>{' '}
+                          {ops.join(', ')}
+                        </div>
+                      )}
                       <div className="equipment-result-row">
                         <div className="equipment-result-pill">
                           <span className={`pill equipment-mode-pill equipment-mode-${mode || 'rent'}`}>
@@ -783,7 +811,9 @@ function Equipment({ items, loading, onAddEquipment, showToast, onRequestEquipme
                         <div className="equipment-result-meta muted small">
                           {t('equipment.distance', '{{km}} Km', { km: item._distanceKm })}
                           {' • '}
-                          {t('equipment.rating', '{{rating}}★', { rating: item._rating })}
+                          <span className="equipment-stars" aria-label={t('equipment.rating', 'Rating {{rating}}', { rating: item._rating })}>
+                            {'★★★★★'.slice(0, Math.round(item._rating))}{'☆☆☆☆☆'.slice(0, 5 - Math.round(item._rating))}
+                          </span>
                         </div>
                       </div>
                       <div className="equipment-result-price">{item.price}</div>

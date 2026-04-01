@@ -373,6 +373,7 @@ function AppContent() {
     if (!isProvider) return;
     const payload = {
       ...item,
+      ownerUserId: user?.id != null ? Number(user.id) : null,
       providerName: user?.fullName || user?.username || '',
       phone: user?.phone || user?.mobile || '',
     };

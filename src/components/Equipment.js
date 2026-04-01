@@ -81,6 +81,19 @@ function Equipment({ items, loading, onAddEquipment, showToast, onRequestEquipme
   const normalizedItems = useMemo(() => (Array.isArray(items) ? items : []), [items]);
   const hasItems = normalizedItems.length > 0;
 
+  /** Listings owned by this provider (for provider dashboard only). */
+  const myListings = useMemo(() => {
+    if (!isProvider || !user?.id) return [];
+    const uid = Number(user.id);
+    const fn = (user.fullName || '').trim().toLowerCase();
+    const un = (user.username || '').trim().toLowerCase();
+    return normalizedItems.filter((it) => {
+      if (it.ownerUserId != null && Number(it.ownerUserId) === uid) return true;
+      const pn = (it.providerName || '').trim().toLowerCase();
+      return pn && (pn === fn || pn === un);
+    });
+  }, [isProvider, user, normalizedItems]);
+
   const parsedLocations = useMemo(() => {
     // We don't have structured district/mandal/village in backend, so we parse simple "A, B, C".
     // village = first, mandal = second, district = last.
@@ -386,7 +399,7 @@ function Equipment({ items, loading, onAddEquipment, showToast, onRequestEquipme
                 )}
           </p>
         </div>
-        {onAddEquipment && (
+        {isProvider && onAddEquipment && (
           <div className="section-header-actions">
             <button
               type="button"
@@ -400,28 +413,7 @@ function Equipment({ items, loading, onAddEquipment, showToast, onRequestEquipme
         )}
       </header>
 
-      <div className="equipment-tabs" role="tablist" aria-label={t('equipment.tabs', 'Equipment tabs')}>
-        <button
-          type="button"
-          className={`equipment-tab ${activeTab === 'search' ? 'active' : ''}`}
-          onClick={() => setActiveTab('search')}
-          role="tab"
-          aria-selected={activeTab === 'search'}
-        >
-          {t('equipment.searchTab', 'Search Equipment')}
-        </button>
-        <button
-          type="button"
-          className={`equipment-tab ${activeTab === 'bookings' ? 'active' : ''}`}
-          onClick={() => setActiveTab('bookings')}
-          role="tab"
-          aria-selected={activeTab === 'bookings'}
-        >
-          {t('equipment.bookingsTab', 'My Bookings')}
-        </button>
-      </div>
-
-      {showAddForm && onAddEquipment && (
+      {isProvider && onAddEquipment && showAddForm && (
         <Modal
           title={t('equipment.listEquipment')}
           onClose={() => setShowAddForm(false)}
@@ -480,28 +472,92 @@ function Equipment({ items, loading, onAddEquipment, showToast, onRequestEquipme
           </form>
         </Modal>
       )}
-      {!loading && !hasItems && (
-        <div className="empty-state card">
-          <div className="empty-state-icon" aria-hidden>🚜</div>
-          <h3>{t('equipment.title')}</h3>
-          <p>
-            {onAddEquipment
-              ? t(
+
+      {isProvider && onAddEquipment && (
+        <div className="equipment-provider-panel">
+          <h2 className="equipment-provider-title">{t('equipment.myListingsTitle', 'Your listings')}</h2>
+          <p className="muted equipment-provider-sub">
+            {t(
+              'equipment.myListingsDesc',
+              'You add machinery here. Farmers use Search & Book to find and request your equipment.',
+            )}
+          </p>
+          {myListings.length === 0 ? (
+            <div className="empty-state card">
+              <div className="empty-state-icon" aria-hidden>🚜</div>
+              <h3>{t('equipment.noListingsYet', 'No listings yet')}</h3>
+              <p>
+                {t(
                   'equipment.emptyProviderHint',
                   'No equipment listed yet. Add your first item for rent or sale.',
-                )
-              : t(
-                  'equipment.emptyFarmerHint',
-                  'No machinery is listed yet. Check back soon, or ask a provider to register and list equipment.',
                 )}
-          </p>
-          {onAddEquipment && (
-            <button type="button" className="primary-btn mt-lg" onClick={() => setShowAddForm(true)}>
-              {t('equipment.listEquipment')}
-            </button>
+              </p>
+              <button type="button" className="primary-btn mt-lg" onClick={() => setShowAddForm(true)}>
+                {t('equipment.listEquipment')}
+              </button>
+            </div>
+          ) : (
+            <div className="equipment-provider-list">
+              {myListings.map((item) => {
+                const key = item.id || item.name;
+                const mode = ((item.modeKey || item.mode || '') + '').toLowerCase();
+                return (
+                  <article key={key} className="card equipment-provider-card">
+                    <div className="equipment-provider-card-main">
+                      <h3 className="equipment-provider-card-name">{item.name}</h3>
+                      <p className="muted small">{item.location || t('equipment.locationUnknown', 'Location not set')}</p>
+                      <div className="equipment-provider-card-meta">
+                        <span className={`pill equipment-mode-pill equipment-mode-${mode || 'rent'}`}>
+                          {mode === 'sell'
+                            ? t('equipment.modeSellShort', 'Sell')
+                            : t('equipment.modeRentShort', 'Rent')}
+                        </span>
+                        <span className="equipment-provider-card-price">{item.price}</span>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
           )}
         </div>
       )}
+
+      {!isProvider && (
+        <>
+          <div className="equipment-tabs" role="tablist" aria-label={t('equipment.tabs', 'Equipment tabs')}>
+            <button
+              type="button"
+              className={`equipment-tab ${activeTab === 'search' ? 'active' : ''}`}
+              onClick={() => setActiveTab('search')}
+              role="tab"
+              aria-selected={activeTab === 'search'}
+            >
+              {t('equipment.searchBookTab', 'Search & Book')}
+            </button>
+            <button
+              type="button"
+              className={`equipment-tab ${activeTab === 'bookings' ? 'active' : ''}`}
+              onClick={() => setActiveTab('bookings')}
+              role="tab"
+              aria-selected={activeTab === 'bookings'}
+            >
+              {t('equipment.bookingsTab', 'My Bookings')}
+            </button>
+          </div>
+
+          {!loading && !hasItems && (
+            <div className="empty-state card">
+              <div className="empty-state-icon" aria-hidden>🚜</div>
+              <h3>{t('equipment.title')}</h3>
+              <p>
+                {t(
+                  'equipment.emptyFarmerHint',
+                  'No machinery is listed yet. Check back soon, or ask a provider to register and list equipment.',
+                )}
+              </p>
+            </div>
+          )}
 
       {activeTab === 'bookings' && (
         <>
@@ -570,9 +626,9 @@ function Equipment({ items, loading, onAddEquipment, showToast, onRequestEquipme
             <div className="empty-state card">
               <div className="empty-state-icon" aria-hidden>📭</div>
               <h3>{t('equipment.noBookings', 'No bookings available')}</h3>
-              <p>{t('equipment.noBookingsDesc', 'Make a booking request from “Search Equipment” to see it here.')}</p>
+              <p>{t('equipment.noBookingsDesc', 'Make a booking request from Search & Book to see it here.')}</p>
               <button type="button" className="primary-btn mt-lg" onClick={() => setActiveTab('search')}>
-                {t('equipment.searchTab', 'Search Equipment')}
+                {t('equipment.searchBookTab', 'Search & Book')}
               </button>
             </div>
           ) : (
@@ -855,6 +911,8 @@ function Equipment({ items, loading, onAddEquipment, showToast, onRequestEquipme
               })}
             </div>
           )}
+        </>
+      )}
         </>
       )}
 

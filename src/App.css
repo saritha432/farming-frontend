@@ -568,6 +568,53 @@ body {
   margin-top: 0.25rem;
 }
 
+.equipment-provider-panel {
+  margin-top: 0.5rem;
+}
+
+.equipment-provider-title {
+  margin: 0 0 0.35rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.equipment-provider-sub {
+  margin: 0 0 1rem;
+  font-size: 0.9rem;
+  max-width: 52ch;
+}
+
+.equipment-provider-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+
+.equipment-provider-card {
+  padding: 1rem 1.1rem;
+}
+
+.equipment-provider-card-name {
+  margin: 0 0 0.35rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.equipment-provider-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.equipment-provider-card-price {
+  font-weight: 700;
+  color: #166534;
+}
+
 .equipment-tabs {
   display: flex;
   gap: 0.5rem;

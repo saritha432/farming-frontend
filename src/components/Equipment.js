@@ -6,7 +6,7 @@ import { api } from '../api';
 
 function Equipment({ items, loading, onAddEquipment, showToast, onRequestEquipment }) {
   const { t } = useTranslation();
-  const { user } = useAuth();
+  const { user, isProvider } = useAuth();
   const [showAddForm, setShowAddForm] = useState(false);
   const [activeTab, setActiveTab] = useState('search'); // search | bookings
 
@@ -344,7 +344,11 @@ function Equipment({ items, loading, onAddEquipment, showToast, onRequestEquipme
         <header className="section-header">
           <div className="section-header-main">
             <h2>{t('equipment.title')}</h2>
-            <p>{t('equipment.description')}</p>
+            <p>
+              {isProvider
+                ? t('equipment.descriptionProvider')
+                : t('equipment.descriptionFarmer')}
+            </p>
           </div>
         </header>
         <div className="grid">
@@ -370,7 +374,17 @@ function Equipment({ items, loading, onAddEquipment, showToast, onRequestEquipme
       <header className="section-header">
         <div className="section-header-main">
           <h2>{t('equipment.title')}</h2>
-          <p>{t('equipment.description')}</p>
+          <p>
+            {isProvider
+              ? t(
+                  'equipment.descriptionProvider',
+                  'List your machinery and manage requests. Farmers with a user account can search and book nearby equipment.',
+                )
+              : t(
+                  'equipment.descriptionFarmer',
+                  'Search registered machinery and send booking requests. Sign up as a service provider to list equipment.',
+                )}
+          </p>
         </div>
         {onAddEquipment && (
           <div className="section-header-actions">
@@ -470,7 +484,17 @@ function Equipment({ items, loading, onAddEquipment, showToast, onRequestEquipme
         <div className="empty-state card">
           <div className="empty-state-icon" aria-hidden>🚜</div>
           <h3>{t('equipment.title')}</h3>
-          <p>No equipment listed yet. List your first item for rent or sale.</p>
+          <p>
+            {onAddEquipment
+              ? t(
+                  'equipment.emptyProviderHint',
+                  'No equipment listed yet. Add your first item for rent or sale.',
+                )
+              : t(
+                  'equipment.emptyFarmerHint',
+                  'No machinery is listed yet. Check back soon, or ask a provider to register and list equipment.',
+                )}
+          </p>
           {onAddEquipment && (
             <button type="button" className="primary-btn mt-lg" onClick={() => setShowAddForm(true)}>
               {t('equipment.listEquipment')}

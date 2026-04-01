@@ -263,7 +263,16 @@ function Profile({ posts = [], onEditProfile, onOpenLogin, onOpenSignup, onViewU
           </label>
         </div>
         <div className="profile-info">
-          <h1 className="profile-username">{user.username || user.fullName}</h1>
+          <div className="profile-username-row">
+            <h1 className="profile-username">{user.username || user.fullName}</h1>
+            <span
+              className={`pill profile-role-pill ${user.role === 'provider' ? 'profile-role-provider' : 'profile-role-user'}`}
+            >
+              {user.role === 'provider'
+                ? t('profile.roleProvider', 'Service provider')
+                : t('profile.roleUser', 'Farmer / user')}
+            </span>
+          </div>
           {user.fullName && user.fullName !== user.username && (
             <p className="profile-full-name">{user.fullName}</p>
           )}

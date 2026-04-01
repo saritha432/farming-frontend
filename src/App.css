@@ -1644,6 +1644,38 @@ body {
   color: #15803d;
 }
 
+.auth-role-fieldset {
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  border-radius: 0.65rem;
+  padding: 0.65rem 0.85rem;
+  margin: 0;
+}
+
+.auth-role-legend {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #475569;
+  padding: 0 0.25rem;
+}
+
+.auth-role-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: #374151;
+  margin-top: 0.45rem;
+  cursor: pointer;
+}
+
+.auth-role-option:first-of-type {
+  margin-top: 0.15rem;
+}
+
+.auth-role-option input {
+  margin-top: 0.2rem;
+}
+
 /* Auth gate (Instagram/FB style: signup/login first, then full app) */
 .auth-gate {
   min-height: 100vh;
@@ -2062,11 +2094,36 @@ body {
   min-width: 0;
 }
 
+.profile-username-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  margin-bottom: 0.25rem;
+}
+
 .profile-username {
-  margin: 0 0 0.25rem;
+  margin: 0;
   font-size: 1.5rem;
   font-weight: 600;
   color: #111827;
+}
+
+.profile-role-pill {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.profile-role-user {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.profile-role-provider {
+  background: #dcfce7;
+  color: #166534;
 }
 
 .profile-full-name {
@@ -2197,6 +2254,10 @@ body {
     flex-direction: column;
     align-items: center;
     text-align: center;
+  }
+
+  .profile-username-row {
+    justify-content: center;
   }
 
   .profile-stats {

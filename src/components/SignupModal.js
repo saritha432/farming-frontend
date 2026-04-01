@@ -15,6 +15,7 @@ function SignupModal({ onClose, onSuccess, onSwitchToLogin }) {
     const fullName = form.fullName?.value?.trim();
     const email = form.email?.value?.trim();
     const password = form.password?.value;
+    const role = (form.role?.value || 'user').toString();
     if (!username || !fullName || !email || !password) {
       setError(t('auth.allFieldsRequired', 'All fields are required'));
       return;
@@ -25,7 +26,7 @@ function SignupModal({ onClose, onSuccess, onSwitchToLogin }) {
     }
     setSubmitting(true);
     try {
-      await onSuccess({ username, fullName, email, password });
+      await onSuccess({ username, fullName, email, password, role });
       onClose();
     } catch (err) {
       setError(err.body?.message || err.message || t('auth.signupFailed', 'Sign up failed. Please try again.'));
@@ -83,6 +84,17 @@ function SignupModal({ onClose, onSuccess, onSwitchToLogin }) {
             placeholder="••••••••"
           />
         </label>
+        <fieldset className="auth-role-fieldset">
+          <legend className="auth-role-legend">{t('auth.accountType', 'Account type')}</legend>
+          <label className="auth-role-option">
+            <input type="radio" name="role" value="user" defaultChecked />
+            <span>{t('auth.roleUser', 'Farmer / user — book machinery, feed, community')}</span>
+          </label>
+          <label className="auth-role-option">
+            <input type="radio" name="role" value="provider" />
+            <span>{t('auth.roleProvider', 'Service provider — list equipment for rent or sale')}</span>
+          </label>
+        </fieldset>
         <div className="card-footer-row mt">
           <button type="submit" className="primary-btn full-width" disabled={submitting}>
             {submitting ? t('auth.signingUp', 'Signing up…') : t('auth.signUp', 'Sign up')}

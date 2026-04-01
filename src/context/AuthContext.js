@@ -9,7 +9,11 @@ function readCachedUser() {
     const raw = window.localStorage.getItem(LOCAL_USER_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    return parsed && parsed.id ? parsed : null;
+    if (!parsed || !parsed.id) return null;
+    return {
+      ...parsed,
+      role: parsed.role === 'provider' ? 'provider' : 'user',
+    };
   } catch {
     return null;
   }
@@ -94,6 +98,7 @@ export function AuthProvider({ children }) {
           username: data.username,
           fullName: data.fullName,
           email: data.email,
+          role: data.role === 'provider' ? 'provider' : 'user',
           avatar: data.avatar,
           bio: data.bio,
         }
@@ -125,6 +130,7 @@ export function AuthProvider({ children }) {
           username: data.username,
           fullName: data.fullName,
           email: data.email,
+          role: data.role === 'provider' ? 'provider' : 'user',
           avatar: data.avatar,
           bio: data.bio,
         }
@@ -175,6 +181,9 @@ export function AuthProvider({ children }) {
     updateUser,
     refreshUser,
     isAuthenticated: !!user,
+    /** 'user' | 'provider' — default farmer/booking user vs equipment service provider */
+    role: user?.role === 'provider' ? 'provider' : 'user',
+    isProvider: user?.role === 'provider',
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

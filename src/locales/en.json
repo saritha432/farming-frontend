@@ -23,7 +23,10 @@
     "loginFailed": "Login failed. Please try again.",
     "signupFailed": "Sign up failed. Please try again.",
     "loggingIn": "Logging in…",
-    "signingUp": "Signing up…"
+    "signingUp": "Signing up…",
+    "accountType": "Account type",
+    "roleUser": "Farmer / user — book machinery, feed, community",
+    "roleProvider": "Service provider — list equipment for rent or sale"
   },
   "authGate": {
     "tagline": "Farming community, marketplace, and learning — in one place.",
@@ -39,7 +42,9 @@
     "following": "following",
     "logInToView": "Log in to see your profile",
     "logInToViewDesc": "Sign in or create an account to view your profile and posts.",
-    "noPostsYet": "No posts yet"
+    "noPostsYet": "No posts yet",
+    "roleUser": "Farmer / user",
+    "roleProvider": "Service provider"
   },
   "toast": {
     "postCreated": "Post published!",
@@ -129,6 +134,10 @@
   "equipment": {
     "title": "Equipment Marketplace",
     "description": "Farmers showcase equipment for sale or rental with tutorials and simple scheduling.",
+    "descriptionFarmer": "Search registered machinery and send booking requests. Sign up as a service provider to list equipment.",
+    "descriptionProvider": "List your machinery and manage requests. Farmers with a user account can search and book nearby equipment.",
+    "emptyFarmerHint": "No machinery is listed yet. Check back soon, or ask a provider to register and list equipment.",
+    "emptyProviderHint": "No equipment listed yet. Add your first item for rent or sale.",
     "includesOperator": "Includes trained operator.",
     "operatorNotIncluded": "Operator not included.",
     "requestRent": "Request rent",

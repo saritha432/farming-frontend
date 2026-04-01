@@ -33,7 +33,7 @@ const TABS = {
 
 function AppContent() {
   const { t, i18n } = useTranslation();
-  const { user, loading: authLoading, login, signup, logout } = useAuth();
+  const { user, loading: authLoading, login, signup, logout, isProvider } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [showLoginModal, setShowLoginModal] = useState(false);
@@ -83,13 +83,14 @@ function AppContent() {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
-  // After login/signup, go directly to Media Feed
+  // After login/signup: farmers → Feed; equipment providers → Equipment (machinery booking flow)
   useEffect(() => {
     if (user && !prevUserRef.current) {
-      navigate('/feed', { replace: true });
+      const goEquipment = user.role === 'provider';
+      navigate(goEquipment ? '/equipment' : '/feed', { replace: true });
       if (typeof window !== 'undefined') {
         try {
-          window.localStorage.setItem('agrovibes_active_tab', TABS.FEED);
+          window.localStorage.setItem('agrovibes_active_tab', goEquipment ? TABS.EQUIPMENT : TABS.FEED);
         } catch {
           // ignore
         }
@@ -362,14 +363,20 @@ function AppContent() {
   };
 
   const handleAddEquipment = async (item) => {
+    if (!isProvider) return;
+    const payload = {
+      ...item,
+      providerName: user?.fullName || user?.username || '',
+      phone: user?.phone || user?.mobile || '',
+    };
     try {
-      const created = await api.postEquipment(item);
+      const created = await api.postEquipment(payload);
       setApiData((prev) => ({ ...prev, equipment: [...(prev.equipment || data.equipment), created] }));
       addToast({ id: Date.now(), message: t('toast.equipmentListed'), type: 'success' });
     } catch {
       setApiData((prev) => ({
         ...prev,
-        equipment: [...(prev.equipment || data.equipment), { ...item, id: `user-equip-${Date.now()}` }],
+        equipment: [...(prev.equipment || data.equipment), { ...payload, id: `user-equip-${Date.now()}` }],
       }));
       addToast({ id: Date.now(), message: t('toast.equipmentListed'), type: 'success' });
     }
@@ -968,7 +975,7 @@ function AppContent() {
                   <Equipment
                     items={data.equipment}
                     loading={loading.equipment}
-                    onAddEquipment={handleAddEquipment}
+                    onAddEquipment={isProvider ? handleAddEquipment : undefined}
                     showToast={addToast}
                     onRequestEquipment={handleRequestEquipment}
                   />

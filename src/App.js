@@ -54,6 +54,13 @@ function AppContent() {
   };
 
   const activeTab = tabFromPath(location.pathname);
+  const visibleTabs =
+    isProvider
+      ? {
+          EQUIPMENT: TABS.EQUIPMENT,
+          PROFILE: TABS.PROFILE,
+        }
+      : TABS;
   const [cart, setCart] = useState([]);
   const [showCartDropdown, setShowCartDropdown] = useState(false);
   const [apiOnline, setApiOnline] = useState(true);
@@ -924,7 +931,7 @@ function AppContent() {
             }
           }
         }}
-        tabs={TABS}
+        tabs={visibleTabs}
         isExpanded={isNavExpanded}
         onHoverStart={() => setIsNavExpanded(true)}
         onHoverEnd={() => setIsNavExpanded(false)}
@@ -934,10 +941,16 @@ function AppContent() {
         <div className="ig-shell">
           <div className="ig-feed-column">
             <Routes>
-              <Route path="/" element={<Navigate to="/feed" replace />} />
+              <Route
+                path="/"
+                element={<Navigate to={isProvider ? '/equipment' : '/feed'} replace />}
+              />
               <Route
                 path="/feed"
                 element={
+                  isProvider ? (
+                    <Navigate to="/equipment" replace />
+                  ) : (
                   <Media
                     posts={visibleFeedPosts}
                     loading={loading.feed}
@@ -950,11 +963,15 @@ function AppContent() {
                     userFilter={feedUserFilter}
                     onClearUserFilter={() => setFeedUserFilter(null)}
                   />
+                  )
                 }
               />
               <Route
                 path="/knowledge"
                 element={
+                  isProvider ? (
+                    <Navigate to="/equipment" replace />
+                  ) : (
                   <Knowledge
                     guides={data.guides}
                     loading={loading.knowledge}
@@ -967,6 +984,7 @@ function AppContent() {
                     onDeleteSession={handleDeleteKnowledgeSession}
                     onUpdateSession={handleUpdateKnowledgeSession}
                   />
+                  )
                 }
               />
               <Route
@@ -984,20 +1002,33 @@ function AppContent() {
               <Route
                 path="/labor"
                 element={
+                  isProvider ? (
+                    <Navigate to="/equipment" replace />
+                  ) : (
                   <Labor
                     laborProfiles={data.workers}
                     jobs={data.jobs}
                     onCreateJob={handleCreateJob}
                   />
+                  )
                 }
               />
               <Route
                 path="/products"
-                element={<Products products={data.products} onAddProduct={handleAddProduct} />}
+                element={
+                  isProvider ? (
+                    <Navigate to="/equipment" replace />
+                  ) : (
+                    <Products products={data.products} onAddProduct={handleAddProduct} />
+                  )
+                }
               />
               <Route
                 path="/sales"
                 element={
+                  isProvider ? (
+                    <Navigate to="/equipment" replace />
+                  ) : (
                   <Sales
                     items={data.salesItems}
                     cart={cart}
@@ -1006,12 +1037,28 @@ function AppContent() {
                     onAddSalesItem={handleAddSalesItem}
                     onProceedPayment={handleProceedSalesPayment}
                   />
+                  )
                 }
               />
-              <Route path="/learning" element={<Learning courses={data.courses} />} />
+              <Route
+                path="/learning"
+                element={
+                  isProvider ? (
+                    <Navigate to="/equipment" replace />
+                  ) : (
+                    <Learning courses={data.courses} />
+                  )
+                }
+              />
               <Route
                 path="/community"
-                element={<Community onViewUser={handleViewUserPosts} />}
+                element={
+                  isProvider ? (
+                    <Navigate to="/equipment" replace />
+                  ) : (
+                    <Community onViewUser={handleViewUserPosts} />
+                  )
+                }
               />
               <Route
                 path="/profile"
@@ -1024,7 +1071,10 @@ function AppContent() {
                   />
                 }
               />
-              <Route path="*" element={<Navigate to="/feed" replace />} />
+              <Route
+                path="*"
+                element={<Navigate to={isProvider ? '/equipment' : '/feed'} replace />}
+              />
             </Routes>
           </div>
         </div>
